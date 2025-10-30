@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
-import type { TimelineEvent } from '../types';
-import { TimelineEventType, Sentiment } from '../types';
-import { EmailIcon, MeetingIcon, CallIcon, ProposalIcon, NoteIcon, SparklesIcon } from './icons';
+import type { Interaction } from '../types';
+import { InteractionType, Sentiment } from '../types';
+import { EmailIcon, MeetingIcon, CallIcon, ProposalIcon, NoteIcon, SparklesIcon, UserIcon } from './icons';
 import { summarizeText } from '../services/geminiService';
 
 interface TimelineItemProps {
-  event: TimelineEvent;
+  interaction: Interaction;
   isLast: boolean;
 }
 
-const EventIcon: React.FC<{ type: TimelineEventType }> = ({ type }) => {
+const EventIcon: React.FC<{ type: InteractionType }> = ({ type }) => {
   const iconClass = "w-8 h-8 p-1.5 rounded-full bg-background text-secondary";
   switch (type) {
-    case TimelineEventType.EMAIL:
+    case InteractionType.EMAIL:
       return <EmailIcon className={iconClass} />;
-    case TimelineEventType.MEETING:
+    case InteractionType.MEETING:
       return <MeetingIcon className={iconClass} />;
-    case TimelineEventType.CALL:
+    case InteractionType.CALL_LOG:
       return <CallIcon className={iconClass} />;
-    case TimelineEventType.PROPOSAL:
+    case InteractionType.PROPOSAL_VIEW:
       return <ProposalIcon className={iconClass} />;
-    case TimelineEventType.NOTE:
+    case InteractionType.NOTE:
       return <NoteIcon className={iconClass} />;
     default:
       return null;
@@ -35,14 +35,19 @@ const getSentimentClasses = (sentiment?: Sentiment) => {
     }
 }
 
-export const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast }) => {
-  const [summary, setSummary] = useState(event.summary);
+const getInteractionTitle = (interaction: Interaction) => {
+    const typeText = interaction.type.replace(/_/g, ' ');
+    return `${typeText.charAt(0).toUpperCase() + typeText.slice(1).toLowerCase()}`;
+}
+
+export const TimelineItem: React.FC<TimelineItemProps> = ({ interaction, isLast }) => {
+  const [summary, setSummary] = useState(interaction.ai_summary);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSummarize = async () => {
     if (summary) return;
     setIsLoading(true);
-    const generatedSummary = await summarizeText(event.content);
+    const generatedSummary = await summarizeText(interaction.content_raw);
     setSummary(generatedSummary);
     setIsLoading(false);
   };
@@ -50,27 +55,33 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast }) => 
   return (
     <div className="flex relative">
       <div className="flex flex-col items-center mr-4">
-        <EventIcon type={event.type} />
+        <EventIcon type={interaction.type} />
         {!isLast && <div className="w-px h-full bg-primary/50 mt-2"></div>}
       </div>
       <div className={`flex-1 pb-10 ${isLast ? '' : ''}`}>
-        <div className={`p-4 rounded-lg border ${getSentimentClasses(event.sentiment)}`}>
+        <div className={`p-4 rounded-lg border ${getSentimentClasses(interaction.ai_sentiment)}`}>
             <div className="flex justify-between items-start mb-2">
                 <div>
-                    <p className="font-bold text-foreground">{event.type} with {event.author}</p>
-                    <p className="text-xs text-foreground/70">{new Date(event.timestamp).toLocaleString()}</p>
+                    <p className="font-bold text-foreground">{getInteractionTitle(interaction)}</p>
+                    <p className="text-xs text-foreground/70">{new Date(interaction.timestamp).toLocaleString()}</p>
+                     {interaction.author && (
+                        <div className="flex items-center text-xs text-foreground/70 mt-1">
+                            <UserIcon className="w-4 h-4 mr-1.5" />
+                            <span>{interaction.author.name}</span>
+                        </div>
+                    )}
                 </div>
-                {event.sentiment && (
+                {interaction.ai_sentiment && (
                     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                        event.sentiment === Sentiment.POSITIVE ? 'bg-accent/20 text-accent' :
-                        event.sentiment === Sentiment.NEGATIVE ? 'bg-red-500/20 text-red-300' :
+                        interaction.ai_sentiment === Sentiment.POSITIVE ? 'bg-accent/20 text-accent' :
+                        interaction.ai_sentiment === Sentiment.NEGATIVE ? 'bg-red-500/20 text-red-300' :
                         'bg-primary/20 text-primary'
                     }`}>
-                        {event.sentiment}
+                        {interaction.ai_sentiment}
                     </span>
                 )}
             </div>
-            <p className="text-sm text-foreground/80 whitespace-pre-wrap">{event.content}</p>
+            <p className="text-sm text-foreground/80 whitespace-pre-wrap">{interaction.content_raw}</p>
 
             {summary && (
                 <div className="mt-4 pt-3 border-t border-primary/20">
@@ -81,7 +92,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast }) => 
                 </div>
             )}
             
-            {(event.type === TimelineEventType.EMAIL || event.type === TimelineEventType.MEETING) && !summary && (
+            {(interaction.type === InteractionType.EMAIL || interaction.type === InteractionType.MEETING) && !summary && (
                 <div className="mt-4 pt-3 border-t border-primary/20">
                     <button
                         onClick={handleSummarize}

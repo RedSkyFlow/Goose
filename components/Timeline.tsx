@@ -1,20 +1,19 @@
-
 import React from 'react';
-import type { TimelineEvent } from '../types';
+import type { Interaction } from '../types';
 import { TimelineItem } from './TimelineItem';
 
 interface TimelineProps {
-  events: TimelineEvent[];
+  interactions: Interaction[];
 }
 
-export const Timeline: React.FC<TimelineProps> = ({ events }) => {
+export const Timeline: React.FC<TimelineProps> = ({ interactions }) => {
   return (
     <div className="mt-6">
-      {events.map((event, index) => (
+      {interactions.map((interaction, index) => (
         <TimelineItem 
-          key={event.id} 
-          event={event} 
-          isLast={index === events.length - 1} 
+          key={interaction.interaction_id} 
+          interaction={interaction} 
+          isLast={index === interactions.length - 1} 
         />
       ))}
     </div>

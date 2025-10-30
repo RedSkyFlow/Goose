@@ -19,16 +19,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ deals, selectedDeal, onSelectD
       <h2 className="text-sm font-semibold text-foreground/70 uppercase tracking-wider mb-3">Active Deals</h2>
       <ul className="space-y-2">
         {deals.map((deal) => (
-          <li key={deal.id}>
+          <li key={deal.deal_id}>
             <button
               onClick={() => onSelectDeal(deal)}
               className={`w-full text-left p-3 rounded-lg transition-colors duration-200 ${
-                selectedDeal?.id === deal.id
+                selectedDeal?.deal_id === deal.deal_id
                   ? 'bg-secondary text-white shadow-lg'
                   : 'hover:bg-primary/20 text-foreground'
               }`}
             >
-              <p className="font-semibold">{deal.name}</p>
+              <p className="font-semibold">{deal.deal_name}</p>
               <p className="text-sm opacity-80">${deal.value.toLocaleString()} - {deal.stage}</p>
             </button>
           </li>

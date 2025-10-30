@@ -1,13 +1,14 @@
 import React, { useState, useCallback } from 'react';
-import type { Deal } from '../types';
+import type { Deal, Interaction } from '../types';
 import { getNextBestAction } from '../services/geminiService';
 import { SparklesIcon, SendIcon } from './icons';
 
 interface CoPilotProps {
   deal: Deal;
+  interactions: Interaction[];
 }
 
-export const CoPilot: React.FC<CoPilotProps> = ({ deal }) => {
+export const CoPilot: React.FC<CoPilotProps> = ({ deal, interactions }) => {
   const [suggestion, setSuggestion] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [prompt, setPrompt] = useState<string>("What's my next best action?");
@@ -17,14 +18,14 @@ export const CoPilot: React.FC<CoPilotProps> = ({ deal }) => {
     setIsLoading(true);
     setSuggestion('');
     try {
-      const result = await getNextBestAction(deal);
+      const result = await getNextBestAction(deal, interactions);
       setSuggestion(result);
     } catch (error) {
       setSuggestion('Sorry, I encountered an error.');
     } finally {
       setIsLoading(false);
     }
-  }, [deal]);
+  }, [deal, interactions]);
 
   return (
     <div className="bg-background-light p-4 rounded-lg mt-6">

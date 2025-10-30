@@ -18,7 +18,7 @@ export const HealthScore: React.FC<HealthScoreProps> = ({ score, label }) => {
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <div className="relative w-32 h-32">
+      <div className="relative w-28 h-28 md:w-32 md:h-32">
         <svg className="w-full h-full" viewBox="0 0 120 120">
           <circle
             className="text-primary/20"

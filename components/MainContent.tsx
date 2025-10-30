@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import type { Deal, Proposal } from '../types';
+import type { Deal, GeneratedProposalContent, Interaction } from '../types';
 import { Timeline } from './Timeline';
 import { generateProposal } from '../services/geminiService';
 import { ProposalIcon, SparklesIcon } from './icons';
 
 interface MainContentProps {
   deal: Deal | null;
+  interactions: Interaction[];
 }
 
-const ProposalModal: React.FC<{ proposal: Proposal; onClose: () => void }> = ({ proposal, onClose }) => (
+const ProposalModal: React.FC<{ proposal: GeneratedProposalContent; onClose: () => void }> = ({ proposal, onClose }) => (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
         <div className="bg-background-light rounded-lg shadow-2xl p-8 max-w-2xl w-full border border-primary">
             <h2 className="text-2xl font-bold mb-4 flex items-center"><ProposalIcon className="w-6 h-6 mr-3 text-secondary" /> AI Generated Proposal Draft</h2>
@@ -38,14 +39,14 @@ const ProposalModal: React.FC<{ proposal: Proposal; onClose: () => void }> = ({ 
 );
 
 
-export const MainContent: React.FC<MainContentProps> = ({ deal }) => {
+export const MainContent: React.FC<MainContentProps> = ({ deal, interactions }) => {
     const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedProposal, setGeneratedProposal] = useState<Proposal | null>(null);
+    const [generatedProposal, setGeneratedProposal] = useState<GeneratedProposalContent | null>(null);
 
     const handleGenerateProposal = async () => {
         if (!deal) return;
         setIsGenerating(true);
-        const proposal = await generateProposal(deal);
+        const proposal = await generateProposal(deal, interactions);
         setGeneratedProposal(proposal);
         setIsGenerating(false);
     }
@@ -65,7 +66,7 @@ export const MainContent: React.FC<MainContentProps> = ({ deal }) => {
     <main className="flex-1 bg-background p-8 overflow-y-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-foreground">{deal.name}</h2>
+          <h2 className="text-3xl font-bold text-foreground">{deal.deal_name}</h2>
           <p className="text-foreground/80">
             ${deal.value.toLocaleString()} | {deal.stage}
           </p>
@@ -92,7 +93,7 @@ export const MainContent: React.FC<MainContentProps> = ({ deal }) => {
       <h3 className="text-xl font-semibold text-foreground/90 border-b border-primary/50 pb-2">
         Customer Timeline
       </h3>
-      <Timeline events={deal.timeline} />
+      <Timeline interactions={interactions} />
       {generatedProposal && (
           <ProposalModal proposal={generatedProposal} onClose={() => setGeneratedProposal(null)} />
       )}

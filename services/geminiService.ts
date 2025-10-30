@@ -1,4 +1,4 @@
-import type { Deal, Proposal } from '../types';
+import type { Deal, GeneratedProposalContent, Interaction } from '../types';
 import { handleSummarize, handleGetNextBestAction, handleGenerateProposal } from '../api/gemini';
 
 // This file now acts as a client-side service that communicates
@@ -15,10 +15,10 @@ export const summarizeText = async (text: string): Promise<string> => {
   return handleSummarize(text);
 };
 
-export const getNextBestAction = async (deal: Deal): Promise<string> => {
-  return handleGetNextBestAction(deal);
+export const getNextBestAction = async (deal: Deal, interactions: Interaction[]): Promise<string> => {
+  return handleGetNextBestAction(deal, interactions);
 };
 
-export const generateProposal = async (deal: Deal): Promise<Proposal> => {
-  return handleGenerateProposal(deal);
+export const generateProposal = async (deal: Deal, interactions: Interaction[]): Promise<GeneratedProposalContent> => {
+  return handleGenerateProposal(deal, interactions);
 };

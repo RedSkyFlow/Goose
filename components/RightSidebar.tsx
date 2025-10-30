@@ -1,13 +1,14 @@
 import React from 'react';
-import type { Deal } from '../types';
+import type { Deal, Interaction } from '../types';
 import { HealthScore } from './HealthScore';
 import { CoPilot } from './CoPilot';
 
 interface RightSidebarProps {
   deal: Deal | null;
+  interactions: Interaction[];
 }
 
-export const RightSidebar: React.FC<RightSidebarProps> = ({ deal }) => {
+export const RightSidebar: React.FC<RightSidebarProps> = ({ deal, interactions }) => {
   if (!deal) {
     return (
       <aside className="w-1/4 xl:w-1/5 bg-background-light p-6 border-l border-primary/50 flex items-center justify-center">
@@ -24,13 +25,12 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ deal }) => {
       
       <div>
         <h3 className="text-lg font-semibold mb-4 text-foreground/90">Predictive Scoring</h3>
-        <div className="flex justify-around bg-background/50 p-4 rounded-lg">
-          <HealthScore score={deal.health.deal} label="Deal Health" />
-          <HealthScore score={deal.health.client} label="Client Health" />
+        <div className="flex justify-center bg-background/50 p-4 rounded-lg">
+          <HealthScore score={deal.ai_health_score} label="Deal Health Score" />
         </div>
       </div>
       
-      <CoPilot deal={deal} />
+      <CoPilot deal={deal} interactions={interactions} />
 
     </aside>
   );
