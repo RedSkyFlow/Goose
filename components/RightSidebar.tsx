@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Deal } from '../types';
 import { HealthScore } from './HealthScore';
@@ -11,8 +10,8 @@ interface RightSidebarProps {
 export const RightSidebar: React.FC<RightSidebarProps> = ({ deal }) => {
   if (!deal) {
     return (
-      <aside className="w-1/4 xl:w-1/5 bg-brand-gray-800 p-6 border-l border-brand-gray-700 flex items-center justify-center">
-        <div className="text-center text-gray-500">
+      <aside className="w-1/4 xl:w-1/5 bg-background-light p-6 border-l border-primary/50 flex items-center justify-center">
+        <div className="text-center text-foreground/60">
           <p>Select a deal to see details</p>
         </div>
       </aside>
@@ -20,12 +19,12 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ deal }) => {
   }
 
   return (
-    <aside className="w-1/4 xl:w-1/5 bg-brand-gray-800 p-6 border-l border-brand-gray-700 overflow-y-auto">
+    <aside className="w-1/4 xl:w-1/5 bg-background-light p-6 border-l border-primary/50 overflow-y-auto">
       <h2 className="text-xl font-bold mb-6">Dashboard</h2>
       
       <div>
-        <h3 className="text-lg font-semibold mb-4 text-gray-300">Predictive Scoring</h3>
-        <div className="flex justify-around bg-brand-gray-900/50 p-4 rounded-lg">
+        <h3 className="text-lg font-semibold mb-4 text-foreground/90">Predictive Scoring</h3>
+        <div className="flex justify-around bg-background/50 p-4 rounded-lg">
           <HealthScore score={deal.health.deal} label="Deal Health" />
           <HealthScore score={deal.health.client} label="Client Health" />
         </div>

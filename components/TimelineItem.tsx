@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { TimelineEvent } from '../types';
 import { TimelineEventType, Sentiment } from '../types';
@@ -11,7 +10,7 @@ interface TimelineItemProps {
 }
 
 const EventIcon: React.FC<{ type: TimelineEventType }> = ({ type }) => {
-  const iconClass = "w-8 h-8 p-1.5 rounded-full bg-brand-gray-700 text-brand-blue";
+  const iconClass = "w-8 h-8 p-1.5 rounded-full bg-background text-secondary";
   switch (type) {
     case TimelineEventType.EMAIL:
       return <EmailIcon className={iconClass} />;
@@ -30,9 +29,9 @@ const EventIcon: React.FC<{ type: TimelineEventType }> = ({ type }) => {
 
 const getSentimentClasses = (sentiment?: Sentiment) => {
     switch(sentiment) {
-        case Sentiment.POSITIVE: return 'border-green-500 bg-green-500/10';
+        case Sentiment.POSITIVE: return 'border-accent bg-accent/10';
         case Sentiment.NEGATIVE: return 'border-red-500 bg-red-500/10';
-        default: return 'border-brand-gray-700 bg-brand-gray-800';
+        default: return 'border-primary/50 bg-background-light';
     }
 }
 
@@ -52,46 +51,46 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast }) => 
     <div className="flex relative">
       <div className="flex flex-col items-center mr-4">
         <EventIcon type={event.type} />
-        {!isLast && <div className="w-px h-full bg-brand-gray-700 mt-2"></div>}
+        {!isLast && <div className="w-px h-full bg-primary/50 mt-2"></div>}
       </div>
       <div className={`flex-1 pb-10 ${isLast ? '' : ''}`}>
         <div className={`p-4 rounded-lg border ${getSentimentClasses(event.sentiment)}`}>
             <div className="flex justify-between items-start mb-2">
                 <div>
-                    <p className="font-bold text-white">{event.type} with {event.author}</p>
-                    <p className="text-xs text-gray-400">{new Date(event.timestamp).toLocaleString()}</p>
+                    <p className="font-bold text-foreground">{event.type} with {event.author}</p>
+                    <p className="text-xs text-foreground/70">{new Date(event.timestamp).toLocaleString()}</p>
                 </div>
                 {event.sentiment && (
                     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                        event.sentiment === Sentiment.POSITIVE ? 'bg-green-500/20 text-green-300' :
+                        event.sentiment === Sentiment.POSITIVE ? 'bg-accent/20 text-accent' :
                         event.sentiment === Sentiment.NEGATIVE ? 'bg-red-500/20 text-red-300' :
-                        'bg-yellow-500/20 text-yellow-300'
+                        'bg-primary/20 text-primary'
                     }`}>
                         {event.sentiment}
                     </span>
                 )}
             </div>
-            <p className="text-sm text-gray-300 whitespace-pre-wrap">{event.content}</p>
+            <p className="text-sm text-foreground/80 whitespace-pre-wrap">{event.content}</p>
 
             {summary && (
-                <div className="mt-4 pt-3 border-t border-brand-gray-700">
-                    <h4 className="text-sm font-semibold text-brand-blue flex items-center mb-1">
+                <div className="mt-4 pt-3 border-t border-primary/20">
+                    <h4 className="text-sm font-semibold text-secondary flex items-center mb-1">
                         <SparklesIcon className="w-4 h-4 mr-1.5"/> AI Cliff's Notes
                     </h4>
-                    <p className="text-sm text-gray-400 italic">{summary}</p>
+                    <p className="text-sm text-foreground/70 italic">{summary}</p>
                 </div>
             )}
             
             {(event.type === TimelineEventType.EMAIL || event.type === TimelineEventType.MEETING) && !summary && (
-                <div className="mt-4 pt-3 border-t border-brand-gray-700">
+                <div className="mt-4 pt-3 border-t border-primary/20">
                     <button
                         onClick={handleSummarize}
                         disabled={isLoading}
-                        className="text-sm text-brand-blue hover:text-blue-400 font-semibold disabled:text-gray-500 flex items-center transition-colors"
+                        className="text-sm text-secondary hover:opacity-80 font-semibold disabled:text-foreground/40 flex items-center transition-colors"
                     >
                         {isLoading ? (
                             <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-blue mr-2"></div>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-secondary mr-2"></div>
                                 Generating...
                             </>
                         ) : (

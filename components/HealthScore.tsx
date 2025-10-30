@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface HealthScoreProps {
@@ -7,23 +6,22 @@ interface HealthScoreProps {
 }
 
 const getScoreColor = (score: number) => {
-  if (score > 70) return 'text-green-400';
-  if (score > 40) return 'text-yellow-400';
-  return 'text-red-400';
+  if (score > 70) return 'text-accent';
+  if (score > 40) return 'text-primary';
+  return 'text-red-500';
 };
 
 export const HealthScore: React.FC<HealthScoreProps> = ({ score, label }) => {
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
-  const color = getScoreColor(score).replace('text-', ''); // Extract color name
 
   return (
     <div className="flex flex-col items-center justify-center">
       <div className="relative w-32 h-32">
         <svg className="w-full h-full" viewBox="0 0 120 120">
           <circle
-            className="text-brand-gray-700"
+            className="text-primary/20"
             strokeWidth="8"
             stroke="currentColor"
             fill="transparent"
@@ -49,7 +47,7 @@ export const HealthScore: React.FC<HealthScoreProps> = ({ score, label }) => {
           <span className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}</span>
         </div>
       </div>
-      <p className="text-center mt-2 text-sm font-medium text-gray-300">{label}</p>
+      <p className="text-center mt-2 text-sm font-medium text-foreground/80">{label}</p>
     </div>
   );
 };

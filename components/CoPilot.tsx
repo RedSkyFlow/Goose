@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import type { Deal } from '../types';
 import { getNextBestAction } from '../services/geminiService';
@@ -28,15 +27,15 @@ export const CoPilot: React.FC<CoPilotProps> = ({ deal }) => {
   }, [deal]);
 
   return (
-    <div className="bg-brand-gray-800 p-4 rounded-lg mt-6">
+    <div className="bg-background-light p-4 rounded-lg mt-6">
       <h3 className="text-lg font-bold flex items-center mb-4">
-        <SparklesIcon className="w-6 h-6 mr-2 text-brand-blue" />
+        <SparklesIcon className="w-6 h-6 mr-2 text-secondary" />
         AI Co-Pilot
       </h3>
-      <div className="bg-brand-gray-900 rounded-lg p-3 min-h-[100px] text-gray-300 text-sm">
+      <div className="bg-background rounded-lg p-3 min-h-[100px] text-foreground/80 text-sm">
         {isLoading ? (
             <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary"></div>
             </div>
         ) : (
           suggestion || 'Ask for a suggestion to get started.'
@@ -47,14 +46,14 @@ export const CoPilot: React.FC<CoPilotProps> = ({ deal }) => {
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="flex-grow bg-brand-gray-700 text-white placeholder-gray-400 p-2 rounded-md border border-brand-gray-600 focus:ring-2 focus:ring-brand-blue focus:outline-none"
+            className="flex-grow bg-background text-foreground placeholder-foreground/50 p-2 rounded-md border border-primary focus:ring-2 focus:ring-secondary focus:outline-none"
             placeholder="Ask a question..."
             disabled={true} // For now, only the pre-defined question is used
         />
         <button
           onClick={handleGetSuggestion}
           disabled={isLoading}
-          className="bg-brand-blue hover:bg-blue-600 disabled:bg-brand-gray-600 text-white font-bold py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center"
+          className="bg-secondary hover:opacity-90 disabled:bg-secondary/50 text-white font-bold py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center"
         >
           {isLoading ? (
              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
