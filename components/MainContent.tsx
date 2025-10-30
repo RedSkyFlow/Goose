@@ -7,6 +7,7 @@ import { ProposalIcon, SparklesIcon } from './icons';
 interface MainContentProps {
   deal: Deal | null;
   interactions: Interaction[];
+  isLoadingInteractions: boolean;
 }
 
 const ProposalModal: React.FC<{ proposal: GeneratedProposalContent; onClose: () => void }> = ({ proposal, onClose }) => (
@@ -39,7 +40,7 @@ const ProposalModal: React.FC<{ proposal: GeneratedProposalContent; onClose: () 
 );
 
 
-export const MainContent: React.FC<MainContentProps> = ({ deal, interactions }) => {
+export const MainContent: React.FC<MainContentProps> = ({ deal, interactions, isLoadingInteractions }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedProposal, setGeneratedProposal] = useState<GeneratedProposalContent | null>(null);
 
@@ -73,8 +74,8 @@ export const MainContent: React.FC<MainContentProps> = ({ deal, interactions }) 
         </div>
         <button
             onClick={handleGenerateProposal}
-            disabled={isGenerating}
-            className="bg-secondary hover:opacity-90 text-white font-bold py-2 px-4 rounded-lg flex items-center transition-all duration-200 disabled:bg-secondary/50"
+            disabled={isGenerating || interactions.length === 0}
+            className="bg-secondary hover:opacity-90 text-white font-bold py-2 px-4 rounded-lg flex items-center transition-all duration-200 disabled:bg-secondary/50 disabled:cursor-not-allowed"
         >
              {isGenerating ? (
                 <>
@@ -93,7 +94,7 @@ export const MainContent: React.FC<MainContentProps> = ({ deal, interactions }) 
       <h3 className="text-xl font-semibold text-foreground/90 border-b border-primary/50 pb-2">
         Customer Timeline
       </h3>
-      <Timeline interactions={interactions} />
+      <Timeline interactions={interactions} isLoading={isLoadingInteractions} />
       {generatedProposal && (
           <ProposalModal proposal={generatedProposal} onClose={() => setGeneratedProposal(null)} />
       )}
