@@ -1,24 +1,37 @@
 import type { Deal, GeneratedProposalContent, Interaction } from '../types';
-import { handleSummarize, handleGetNextBestAction, handleGenerateProposal } from '../api/gemini';
+import { http } from './httpClient';
 
-// This file now acts as a client-side service that communicates
-// with our secure backend proxy (api/gemini.ts).
-// No API keys or direct SDK calls are present here.
+// This file now acts as a client-side service that makes fetch calls
+// to our secure backend proxy endpoints.
 
 export const summarizeText = async (text: string): Promise<string> => {
-  // In a real app, this would be a fetch call:
-  // const response = await fetch('/api/summarize', {
-  //   method: 'POST',
-  //   body: JSON.stringify({ text }),
-  // });
-  // return response.json();
-  return handleSummarize(text);
+  const response = await http.fetch('/api/summarize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!response.ok) throw new Error('Network response was not ok');
+  const data = await response.json();
+  return data.summary;
 };
 
 export const getNextBestAction = async (deal: Deal, interactions: Interaction[]): Promise<string> => {
-  return handleGetNextBestAction(deal, interactions);
+  const response = await http.fetch('/api/next-best-action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deal, interactions }),
+  });
+  if (!response.ok) throw new Error('Network response was not ok');
+  const data = await response.json();
+  return data.action;
 };
 
 export const generateProposal = async (deal: Deal, interactions: Interaction[]): Promise<GeneratedProposalContent> => {
-  return handleGenerateProposal(deal, interactions);
+  const response = await http.fetch('/api/generate-proposal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deal, interactions }),
+  });
+  if (!response.ok) throw new Error('Network response was not ok');
+  return response.json();
 };

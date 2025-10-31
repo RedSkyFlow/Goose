@@ -3,6 +3,7 @@ import type { Deal, Interaction } from './types';
 import { Sidebar } from './components/Sidebar';
 import { MainContent } from './components/MainContent';
 import { RightSidebar } from './components/RightSidebar';
+import { Toast } from './components/Toast';
 import { fetchDeals, fetchInteractions } from './services/apiService';
 
 // --- APP COMPONENT ---
@@ -14,6 +15,7 @@ function App() {
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [isLoadingInteractions, setIsLoadingInteractions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showUpdateToast, setShowUpdateToast] = useState(false);
 
   useEffect(() => {
     const loadDeals = async () => {
@@ -56,9 +58,42 @@ function App() {
     loadInteractions();
   }, [selectedDeal]);
 
+  // Polling effect for live updates
+  useEffect(() => {
+    if (!selectedDeal) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const newInteractions = await fetchInteractions(selectedDeal.deal_id);
+        if (newInteractions.length > interactions.length) {
+          setInteractions(newInteractions);
+          setShowUpdateToast(true);
+        }
+      } catch (err) {
+        console.error('Polling for new interactions failed:', err);
+      }
+    }, 15000); // Poll every 15 seconds
+
+    return () => clearInterval(intervalId);
+  }, [selectedDeal, interactions]);
 
   const handleSelectDeal = (deal: Deal) => {
     setSelectedDeal(deal);
+  };
+  
+  const handleRefreshInteractions = async () => {
+    if (!selectedDeal) return;
+    try {
+        setIsLoadingInteractions(true);
+        const fetchedInteractions = await fetchInteractions(selectedDeal.deal_id);
+        setInteractions(fetchedInteractions);
+        setShowUpdateToast(true);
+    } catch (err) {
+        setError('Failed to refresh interactions.');
+        console.error(err);
+    } finally {
+        setIsLoadingInteractions(false);
+    }
   };
 
   if (error) {
@@ -71,6 +106,11 @@ function App() {
 
   return (
     <div className="flex h-screen w-full font-sans">
+      <Toast 
+        show={showUpdateToast}
+        message="Timeline updated!"
+        onClose={() => setShowUpdateToast(false)}
+      />
       <Sidebar 
         deals={deals} 
         selectedDeal={selectedDeal} 
@@ -81,6 +121,7 @@ function App() {
         deal={selectedDeal} 
         interactions={interactions}
         isLoadingInteractions={isLoadingInteractions}
+        onRefresh={handleRefreshInteractions}
       />
       <RightSidebar deal={selectedDeal} interactions={interactions} />
     </div>

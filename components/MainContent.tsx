@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import type { Deal, GeneratedProposalContent, Interaction } from '../types';
 import { Timeline } from './Timeline';
 import { generateProposal } from '../services/geminiService';
-import { ProposalIcon, SparklesIcon } from './icons';
+import { ProposalIcon, RefreshIcon, SparklesIcon } from './icons';
 
 interface MainContentProps {
   deal: Deal | null;
   interactions: Interaction[];
   isLoadingInteractions: boolean;
+  onRefresh: () => void;
 }
 
 const ProposalModal: React.FC<{ proposal: GeneratedProposalContent; onClose: () => void }> = ({ proposal, onClose }) => (
@@ -40,7 +41,7 @@ const ProposalModal: React.FC<{ proposal: GeneratedProposalContent; onClose: () 
 );
 
 
-export const MainContent: React.FC<MainContentProps> = ({ deal, interactions, isLoadingInteractions }) => {
+export const MainContent: React.FC<MainContentProps> = ({ deal, interactions, isLoadingInteractions, onRefresh }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedProposal, setGeneratedProposal] = useState<GeneratedProposalContent | null>(null);
 
@@ -91,9 +92,19 @@ export const MainContent: React.FC<MainContentProps> = ({ deal, interactions, is
         </button>
       </div>
 
-      <h3 className="text-xl font-semibold text-foreground/90 border-b border-primary/50 pb-2">
-        Customer Timeline
-      </h3>
+      <div className="flex justify-between items-center border-b border-primary/50 pb-2">
+        <h3 className="text-xl font-semibold text-foreground/90">
+            Customer Timeline
+        </h3>
+        <button 
+            onClick={onRefresh} 
+            className="p-1.5 rounded-full hover:bg-primary/20 transition-colors"
+            aria-label="Refresh timeline"
+        >
+            <RefreshIcon className="w-5 h-5 text-foreground/80" />
+        </button>
+      </div>
+
       <Timeline interactions={interactions} isLoading={isLoadingInteractions} />
       {generatedProposal && (
           <ProposalModal proposal={generatedProposal} onClose={() => setGeneratedProposal(null)} />
