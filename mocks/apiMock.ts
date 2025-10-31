@@ -68,7 +68,23 @@ const MOCK_PROPOSALS: Proposal[] = [
 let refresh_counter = 0;
 let newInteractionAdded = false;
 
-const getDeals = (): Deal[] => MOCK_DEALS;
+const getDeals = (): Deal[] => {
+    return MOCK_DEALS.map(deal => {
+        const relevantInteractionIds = MOCK_INTERACTION_LINKS
+            .filter(link => link.deal_id === deal.deal_id)
+            .map(link => link.interaction_id);
+        
+        const latestInteraction = MOCK_INTERACTIONS
+            .filter(interaction => relevantInteractionIds.includes(interaction.interaction_id))
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            [0]; // Get the most recent one
+
+        return {
+            ...deal,
+            last_interaction_at: latestInteraction?.timestamp,
+        };
+    });
+};
 
 const getInteractionsForDeal = (dealId: string): Interaction[] => {
     refresh_counter++;

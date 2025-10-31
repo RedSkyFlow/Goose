@@ -76,7 +76,7 @@ export const GoogleIcon: React.FC<{ className?: string }> = ({ className }) => (
         <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36
 	c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
         <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238
-	C42.775,34.621,44,30.036,44,24C44,22.659,43.862,21.35,43.611,20.083z"></p>
+	C42.775,34.621,44,30.036,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
     </svg>
 );
 
@@ -95,5 +95,28 @@ export const SignatureIcon: React.FC<{ className?: string }> = ({ className }) =
 export const CreditCardIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3.375m-3.375 0h16.5m-16.5 0L6.75 21m9-9l-1.5-1.5m0 0l-1.5 1.5m-3-3l-1.5-1.5m0 0l-1.5 1.5M3 12a9 9 0 1018 0 9 9 0 00-18 0z" />
+    </svg>
+);
+
+export const SearchIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+    </svg>
+);
+
+// FIX: Update props to accept an optional `title` for tooltips and accessibility.
+export const FireIcon: React.FC<{ className?: string; title?: string }> = ({ className, title }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        {title && <title>{title}</title>}
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.362-3.797A8.222 8.222 0 0112 6a8.222 8.222 0 013.362-.786z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 00-2.133-1A3.75 3.75 0 0012 18z" />
+    </svg>
+);
+
+// FIX: Update props to accept an optional `title` for tooltips and accessibility.
+export const ExclamationTriangleIcon: React.FC<{ className?: string; title?: string }> = ({ className, title }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        {title && <title>{title}</title>}
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
     </svg>
 );

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Deal, Interaction } from '../types';
+import { DealStage } from '../types';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
 import { RightSidebar } from './RightSidebar';
@@ -14,6 +15,9 @@ export const GooseOS: React.FC = () => {
   const [isLoadingInteractions, setIsLoadingInteractions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUpdateToast, setShowUpdateToast] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState<DealStage | 'All'>('All');
 
   useEffect(() => {
     const loadDeals = async () => {
@@ -33,6 +37,25 @@ export const GooseOS: React.FC = () => {
     };
     loadDeals();
   }, []);
+
+  const filteredDeals = useMemo(() => {
+    return deals
+      .filter(deal => {
+        if (activeFilter === 'All') return true;
+        return deal.stage === activeFilter;
+      })
+      .filter(deal => {
+        return deal.deal_name.toLowerCase().includes(searchTerm.toLowerCase());
+      });
+  }, [deals, searchTerm, activeFilter]);
+
+  useEffect(() => {
+    // If a deal is selected but it gets filtered out by search/filter,
+    // automatically select the first deal in the new filtered list.
+    if (selectedDeal && !isLoadingDeals && !filteredDeals.find(d => d.deal_id === selectedDeal.deal_id)) {
+        setSelectedDeal(filteredDeals.length > 0 ? filteredDeals[0] : null);
+    }
+  }, [filteredDeals, selectedDeal, isLoadingDeals]);
 
   useEffect(() => {
     if (!selectedDeal) {
@@ -111,10 +134,14 @@ export const GooseOS: React.FC = () => {
         onClose={() => setShowUpdateToast(false)}
       />
       <Sidebar 
-        deals={deals} 
+        deals={filteredDeals} 
         selectedDeal={selectedDeal} 
         onSelectDeal={handleSelectDeal}
         isLoading={isLoadingDeals}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        activeFilter={activeFilter}
+        onFilterChange={setActiveFilter}
       />
       <MainContent 
         deal={selectedDeal} 

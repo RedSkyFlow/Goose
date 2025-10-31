@@ -43,6 +43,7 @@ export interface Deal {
   ai_next_best_action: string;
   created_at: string; // TIMESTAMPTZ
   updated_at: string; // TIMESTAMPTZ
+  last_interaction_at?: string; // TIMESTAMPTZ
 }
 
 // The AI Context Engine
