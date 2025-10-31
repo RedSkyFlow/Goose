@@ -75,6 +75,7 @@ export interface Interaction {
   author?: {
     name: string;
     role: string;
+    email?: string;
   }
 }
 
@@ -143,4 +144,10 @@ export interface GeneratedProposalContent {
     clientNeeds: string;
     proposedSolution: string;
     pricing: string;
+}
+
+export interface EmailDraft {
+    subject: string;
+    body: string;
+    to: string;
 }

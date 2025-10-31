@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal } from '../types';
+import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal, EmailDraft } from '../types';
 import { DealStage, InteractionType, PaymentStatus, ProposalStatus, Sentiment } from '../types';
 import { http } from '../services/httpClient';
 
@@ -119,7 +119,7 @@ const getInteractionsForDeal = (dealId: string): Interaction[] => {
             const contact = MOCK_CONTACTS.find(c => c.contact_id === link?.contact_id);
             return {
                 ...interaction,
-                author: contact ? { name: `${contact.first_name} ${contact.last_name}`, role: contact.role || '' } : { name: 'System', role: 'Notification'},
+                author: contact ? { name: `${contact.first_name} ${contact.last_name}`, role: contact.role || '', email: contact.email } : { name: 'System', role: 'Notification'},
             };
         })
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -159,6 +159,52 @@ const handleGenerateProposal = async (deal: Deal, interactions: Interaction[]): 
     });
     return JSON.parse(response.text) as GeneratedProposalContent;
 };
+
+const handleDraftEmail = async (suggestion: string, deal: Deal, interactions: Interaction[]): Promise<EmailDraft> => {
+    const recipientInteraction = interactions.find(i => i.author?.email);
+    const recipient = recipientInteraction?.author;
+
+    if (!recipient?.email) {
+        throw new Error("Could not find a contact email for this deal.");
+    }
+    
+    const context = `
+        Deal Name: ${deal.deal_name}
+        Client Contact: ${recipient.name}
+        Suggested action to take: ${suggestion}
+        Last interaction: ${interactions[0]?.content_raw || 'N/A'}
+    `;
+
+    const prompt = `You are a helpful sales assistant named Goose. Based on the following context, draft a professional and concise email to the client to action the suggestion. The email body should be ready to send and include a placeholder like "[Your Name]" for the sender's signature.
+    
+    Context:
+    ${context}
+
+    Return a valid JSON object with "subject" and "body" keys.`;
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-pro',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            subject: { type: Type.STRING, description: 'A concise and relevant subject line for the email.' },
+            body: { type: Type.STRING, description: "The full body of the email, formatted for clarity, including salutation and a signature placeholder." },
+          },
+          required: ["subject", "body"],
+        },
+      },
+    });
+
+    const emailContent = JSON.parse(response.text) as { subject: string; body: string };
+
+    return {
+        ...emailContent,
+        to: recipient.email,
+    };
+}
 
 // --- 2. MOCK FETCH IMPLEMENTATION ---
 
@@ -232,6 +278,11 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
          const { deal, interactions } = JSON.parse(init.body as string);
          const proposal = await handleGenerateProposal(deal, interactions);
          return new Response(JSON.stringify(proposal), { headers: { 'Content-Type': 'application/json' } });
+    }
+    if (pathname === '/api/draft-email' && init?.method === 'POST') {
+        const { suggestion, deal, interactions } = JSON.parse(init.body as string);
+        const emailDraft = await handleDraftEmail(suggestion, deal, interactions);
+        return new Response(JSON.stringify(emailDraft), { headers: { 'Content-Type': 'application/json' } });
     }
 
     console.warn(`No mock handler for ${pathname}. Falling back to original fetch.`);

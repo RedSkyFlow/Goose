@@ -14,7 +14,7 @@ export const GooseOS: React.FC = () => {
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [isLoadingInteractions, setIsLoadingInteractions] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showUpdateToast, setShowUpdateToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<DealStage | 'All'>('All');
@@ -89,7 +89,7 @@ export const GooseOS: React.FC = () => {
         // Only update state if there's genuinely new data to avoid re-renders
         if (newInteractions.length > interactions.length) {
           setInteractions(newInteractions);
-          setShowUpdateToast(true);
+          setToastMessage("Timeline updated!");
         }
       } catch (err) {
         console.error('Polling for new interactions failed:', err);
@@ -98,6 +98,16 @@ export const GooseOS: React.FC = () => {
 
     return () => clearInterval(intervalId);
   }, [selectedDeal, interactions]);
+  
+  // Auto-hide toast after a delay
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => {
+        setToastMessage('');
+      }, 4000); // Hide after 4 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   const handleSelectDeal = (deal: Deal) => {
     setSelectedDeal(deal);
@@ -109,7 +119,7 @@ export const GooseOS: React.FC = () => {
         setIsLoadingInteractions(true);
         const fetchedInteractions = await fetchInteractions(selectedDeal.deal_id);
         setInteractions(fetchedInteractions);
-        setShowUpdateToast(true);
+        setToastMessage("Timeline updated!");
     } catch (err) {
         setError('Failed to refresh interactions.');
         console.error(err);
@@ -129,9 +139,9 @@ export const GooseOS: React.FC = () => {
   return (
     <div className="flex h-screen w-full font-sans">
       <Toast 
-        show={showUpdateToast}
-        message="Timeline updated!"
-        onClose={() => setShowUpdateToast(false)}
+        show={!!toastMessage}
+        message={toastMessage}
+        onClose={() => setToastMessage('')}
       />
       <Sidebar 
         deals={filteredDeals} 
@@ -149,7 +159,11 @@ export const GooseOS: React.FC = () => {
         isLoadingInteractions={isLoadingInteractions}
         onRefresh={handleRefreshInteractions}
       />
-      <RightSidebar deal={selectedDeal} interactions={interactions} />
+      <RightSidebar 
+        deal={selectedDeal} 
+        interactions={interactions} 
+        setToastMessage={setToastMessage} 
+      />
     </div>
   );
 }

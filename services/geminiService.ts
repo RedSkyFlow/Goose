@@ -1,4 +1,4 @@
-import type { Deal, GeneratedProposalContent, Interaction } from '../types';
+import type { Deal, GeneratedProposalContent, Interaction, EmailDraft } from '../types';
 import { http } from './httpClient';
 
 // This file now acts as a client-side service that makes fetch calls
@@ -35,3 +35,13 @@ export const generateProposal = async (deal: Deal, interactions: Interaction[]):
   if (!response.ok) throw new Error('Network response was not ok');
   return response.json();
 };
+
+export const draftEmail = async (suggestion: string, deal: Deal, interactions: Interaction[]): Promise<EmailDraft> => {
+    const response = await http.fetch('/api/draft-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggestion, deal, interactions }),
+    });
+    if (!response.ok) throw new Error('Network response was not ok');
+    return response.json();
+}

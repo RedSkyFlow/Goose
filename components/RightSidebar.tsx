@@ -6,9 +6,10 @@ import { CoPilot } from './CoPilot';
 interface RightSidebarProps {
   deal: Deal | null;
   interactions: Interaction[];
+  setToastMessage: (message: string) => void;
 }
 
-export const RightSidebar: React.FC<RightSidebarProps> = ({ deal, interactions }) => {
+export const RightSidebar: React.FC<RightSidebarProps> = ({ deal, interactions, setToastMessage }) => {
   if (!deal) {
     return (
       <aside className="w-1/4 xl:w-1/5 bg-background-light p-6 border-l border-primary/50 flex items-center justify-center">
@@ -30,7 +31,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ deal, interactions }
         </div>
       </div>
       
-      <CoPilot deal={deal} interactions={interactions} />
+      <CoPilot deal={deal} interactions={interactions} setToastMessage={setToastMessage} />
 
     </aside>
   );
