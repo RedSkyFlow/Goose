@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink } from '../types';
-import { DealStage, InteractionType, Sentiment } from '../types';
+import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal } from '../types';
+import { DealStage, InteractionType, PaymentStatus, ProposalStatus, Sentiment } from '../types';
 import { http } from '../services/httpClient';
 
 // This file contains all the logic from the previous `api/` directory
@@ -49,6 +49,21 @@ const MOCK_INTERACTION_LINKS: InteractionLink[] = [
     { interaction_id: 'int-6', deal_id: 'deal-2', company_id: 'comp-2', contact_id: 'cont-5' },
     { interaction_id: 'int-7', deal_id: 'deal-3', company_id: 'comp-3', contact_id: 'cont-3' },
 ];
+
+const MOCK_PROPOSALS: Proposal[] = [
+    {
+        proposal_id: 'prop-1',
+        deal_id: 'deal-1',
+        version: 1,
+        status: ProposalStatus.SENT,
+        ai_initial_draft: `**Project: Comprehensive Network Infrastructure Upgrade**\n\n**1. Introduction**\nThis document outlines a proposal for a complete network infrastructure upgrade for The Grand Hotel, designed to address the identified needs for enhanced reliability, security, and performance to elevate the guest experience.\n\n**2. Understanding Your Needs**\nBased on our discovery call, we understand The Grand Hotel's primary challenges include slow guest WiFi, unreliable connectivity in key areas like conference rooms, and outdated network security. These issues pose a risk to guest satisfaction and operational efficiency, especially with the peak season approaching.\n\n**3. Proposed Solution**\nWe propose a phased implementation of a state-of-the-art, unified network solution from Ubiquiti. This includes:\n- High-density WiFi 6 access points for superior guest coverage.\n- A robust, scalable switching infrastructure to eliminate bottlenecks.\n- A next-generation security gateway for threat protection and secure access.\n\n**4. Pricing**\nThe total investment for the proposed solution, including all hardware, installation, and configuration, is $250,000.`,
+        sent_at: '2023-11-05T10:00:00Z',
+        payment_status: PaymentStatus.NONE,
+        created_at: '2023-11-05T09:00:00Z',
+        updated_at: '2023-11-05T10:00:00Z',
+    }
+];
+
 
 let refresh_counter = 0;
 let newInteractionAdded = false;
@@ -153,6 +168,38 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
         const data = getInteractionsForDeal(dealId);
         return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
     }
+    // Match proposal ID from path
+    const proposalMatch = pathname.match(/^\/api\/proposals\/([a-zA-Z0-9-]+)$/);
+    if (proposalMatch && init?.method !== 'POST') {
+        const proposalId = proposalMatch[1];
+        const proposal = MOCK_PROPOSALS.find(p => p.proposal_id === proposalId);
+        if (!proposal) return new Response('Proposal not found', { status: 404 });
+        return new Response(JSON.stringify(proposal), { headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // --- Proposal Actions ---
+    const acceptMatch = pathname.match(/^\/api\/proposals\/([a-zA-Z0-9-]+)\/accept$/);
+    if (acceptMatch && init?.method === 'POST') {
+        const proposalId = acceptMatch[1];
+        const proposal = MOCK_PROPOSALS.find(p => p.proposal_id === proposalId);
+        if (!proposal) return new Response('Proposal not found', { status: 404 });
+        const { signature } = JSON.parse(init.body as string);
+        proposal.status = ProposalStatus.ACCEPTED;
+        proposal.signed_at = new Date().toISOString();
+        proposal.signature = signature;
+        return new Response(JSON.stringify(proposal), { headers: { 'Content-Type': 'application/json' } });
+    }
+    const payMatch = pathname.match(/^\/api\/proposals\/([a-zA-Z0-9-]+)\/pay$/);
+    if (payMatch && init?.method === 'POST') {
+        const proposalId = payMatch[1];
+        const proposal = MOCK_PROPOSALS.find(p => p.proposal_id === proposalId);
+        if (!proposal) return new Response('Proposal not found', { status: 404 });
+        proposal.payment_status = PaymentStatus.PAID;
+        proposal.status = ProposalStatus.PAID;
+        proposal.payment_gateway_tx_id = `mock_tx_${Date.now()}`;
+        return new Response(JSON.stringify(proposal), { headers: { 'Content-Type': 'application/json' } });
+    }
+
 
     // --- AI Endpoints ---
     if (pathname === '/api/summarize' && init?.method === 'POST') {

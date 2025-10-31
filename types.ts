@@ -112,6 +112,7 @@ export interface Proposal {
     final_content?: string;
     sent_at?: string; // TIMESTAMPTZ
     signed_at?: string; // TIMESTAMPTZ
+    signature?: string; // Name of the signer
     payment_status: PaymentStatus;
     payment_gateway_tx_id?: string;
     created_at: string; // TIMESTAMPTZ
