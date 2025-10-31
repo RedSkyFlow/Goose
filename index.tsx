@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { startApiMock } from './mocks/apiMock';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Start the mock API to intercept fetch calls in this development environment.
 // In production, this line would be removed.
@@ -14,7 +15,7 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
+  <AuthProvider>
     <App />
-  </React.StrictMode>
+  </AuthProvider>
 );
