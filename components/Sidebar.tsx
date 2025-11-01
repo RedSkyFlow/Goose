@@ -44,15 +44,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-1/4 xl:w-1/5 bg-background-light p-4 border-r border-primary/50 flex flex-col">
+    <aside className="w-full max-w-xs xl:max-w-sm bg-background-light p-4 border-r border-primary/50 flex flex-col">
       <div>
-        <div className="flex items-center mb-6">
-          <div className="bg-secondary rounded-full h-8 w-8 flex items-center justify-center font-bold text-background text-lg mr-3">
-            G
-          </div>
-          <h1 className="text-xl font-bold text-foreground">Project Goose</h1>
-        </div>
-        <h2 className="text-sm font-semibold text-foreground/70 uppercase tracking-wider mb-3">Active Deals</h2>
+        <h2 className="text-sm font-semibold text-foreground/70 uppercase tracking-wider mb-3 mt-2">Active Deals</h2>
         
         <div className="mb-4 space-y-3">
             <div className="relative">

@@ -10,6 +10,8 @@ export interface Company {
   updated_at: string; // TIMESTAMPTZ
 }
 
+export type NewCompany = Omit<Company, 'company_id' | 'created_at' | 'updated_at' | 'ai_summary'>;
+
 export interface Contact {
   contact_id: string; // UUID (PK)
   company_id: string; // UUID (FK)
@@ -22,6 +24,8 @@ export interface Contact {
   created_at: string; // TIMESTAMPTZ
   updated_at: string; // TIMESTAMPTZ
 }
+
+export type NewContact = Omit<Contact, 'contact_id' | 'created_at' | 'updated_at' | 'ai_persona_summary'>;
 
 export enum DealStage {
   PROSPECTING = 'Prospecting',

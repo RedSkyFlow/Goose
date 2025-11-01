@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal, EmailDraft, ProposalItem, ROIProjection } from '../types';
+import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal, EmailDraft, ProposalItem, ROIProjection, NewCompany, NewContact } from '../types';
 import { DealStage, InteractionType, PaymentStatus, ProposalStatus, Sentiment } from '../types';
 import { http } from '../services/httpClient';
 
@@ -20,8 +20,8 @@ const MOCK_CONTACTS: Contact[] = [
     { contact_id: 'cont-1', company_id: 'comp-1', first_name: 'John', last_name: 'Doe', email: 'john.doe@grandhotel.com', role: 'IT Director', created_at: '2023-10-26T10:00:00Z', updated_at: '2023-10-26T10:00:00Z' },
     { contact_id: 'cont-2', company_id: 'comp-2', first_name: 'Michael', last_name: 'Chen', email: 'm.chen@innovatecorp.com', role: 'CTO', created_at: '2023-10-15T09:00:00Z', updated_at: '2023-10-15T09:00:00Z' },
     { contact_id: 'cont-3', company_id: 'comp-3', first_name: 'David', last_name: 'Ortiz', email: 'd.ortiz@generalretail.com', role: 'Operations Manager', created_at: '2023-11-10T11:20:00Z', updated_at: '2023-11-10T11:20:00Z' },
-    { contact_id: 'cont-4', company_id: 'comp-1', first_name: 'Sarah', last_name: 'Jenkins', email: 'sarah.j@flow.com', role: 'Sales Rep', created_at: '2023-01-01T10:00:00Z', updated_at: '2023-01-01T10:00:00Z' },
-    { contact_id: 'cont-5', company_id: 'comp-2', first_name: 'Emily', last_name: 'White', email: 'emily.w@flow.com', role: 'Account Manager', created_at: '2023-01-01T10:00:00Z', updated_at: '2023-01-01T10:00:00Z' },
+    { contact_id: 'cont-4', company_id: 'comp-1', first_name: 'Sarah', last_name: 'Jenkins', email: 'sarah.j@grandhotel.com', role: 'Project Manager', created_at: '2023-01-01T10:00:00Z', updated_at: '2023-01-01T10:00:00Z' },
+    { contact_id: 'cont-5', company_id: 'comp-2', first_name: 'Emily', last_name: 'White', email: 'emily.w@innovatecorp.com', role: 'Account Manager', created_at: '2023-01-01T10:00:00Z', updated_at: '2023-01-01T10:00:00Z' },
 ];
 
 const generateHistory = (start: number, end: number, points: number): { date: string; score: number }[] => {
@@ -63,12 +63,17 @@ const MOCK_INTERACTION_LINKS: InteractionLink[] = [
 
 const MOCK_PROPOSALS: Proposal[] = [];
 
+// --- Mock Data Access Logic ---
 
 let refresh_counter = 0;
 let newInteractionAdded = false;
 
-const getDeals = (): Deal[] => {
-    return MOCK_DEALS.map(deal => {
+const getDeals = ({ companyId }: { companyId?: string } = {}): Deal[] => {
+    let deals = MOCK_DEALS;
+    if (companyId) {
+        deals = deals.filter(deal => deal.company_id === companyId);
+    }
+    return deals.map(deal => {
         const relevantInteractionIds = MOCK_INTERACTION_LINKS
             .filter(link => link.deal_id === deal.deal_id)
             .map(link => link.interaction_id);
@@ -76,7 +81,7 @@ const getDeals = (): Deal[] => {
         const latestInteraction = MOCK_INTERACTIONS
             .filter(interaction => relevantInteractionIds.includes(interaction.interaction_id))
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            [0]; // Get the most recent one
+            [0];
 
         return {
             ...deal,
@@ -85,31 +90,29 @@ const getDeals = (): Deal[] => {
     });
 };
 
-const getInteractionsForDeal = (dealId: string): Interaction[] => {
-    refresh_counter++;
-    if (dealId === 'deal-1' && refresh_counter > 1 && !newInteractionAdded) {
-        console.log("MOCK API: Injecting a new interaction for live update simulation.");
-        const NEW_MOCK_INTERACTION: Interaction = {
-            interaction_id: 'int-new-1',
-            type: InteractionType.EMAIL,
-            source_identifier: 'gmail-new',
-            timestamp: new Date().toISOString(),
-            content_raw: `Subject: RE: Following up on our call\n\nHi Sarah,\n\nThanks for the overview. This looks promising. The team and I have reviewed it and we'd like to move forward with the formal proposal.\n\nBest,\nJohn Doe`,
-            ai_sentiment: Sentiment.POSITIVE,
-            created_at: new Date().toISOString(),
-        };
-        const NEW_MOCK_LINK: InteractionLink = {
-            interaction_id: 'int-new-1',
-            deal_id: 'deal-1',
-            company_id: 'comp-1',
-            contact_id: 'cont-1'
-        };
-        MOCK_INTERACTIONS.unshift(NEW_MOCK_INTERACTION);
-        MOCK_INTERACTION_LINKS.push(NEW_MOCK_LINK);
-        newInteractionAdded = true;
+const getInteractions = (params: { dealId?: string, companyId?: string, contactId?: string }): Interaction[] => {
+    if (params.dealId === 'deal-1' && !newInteractionAdded) {
+        refresh_counter++;
+        if (refresh_counter > 1) {
+            console.log("MOCK API: Injecting a new interaction for live update simulation.");
+            const NEW_MOCK_INTERACTION: Interaction = {
+                interaction_id: 'int-new-1', type: InteractionType.EMAIL, source_identifier: 'gmail-new',
+                timestamp: new Date().toISOString(),
+                content_raw: `Subject: RE: Following up on our call\n\nHi Sarah,\n\nThanks for the overview. This looks promising. The team and I have reviewed it and we'd like to move forward with the formal proposal.\n\nBest,\nJohn Doe`,
+                ai_sentiment: Sentiment.POSITIVE, created_at: new Date().toISOString(),
+            };
+            const NEW_MOCK_LINK: InteractionLink = { interaction_id: 'int-new-1', deal_id: 'deal-1', company_id: 'comp-1', contact_id: 'cont-1' };
+            MOCK_INTERACTIONS.unshift(NEW_MOCK_INTERACTION);
+            MOCK_INTERACTION_LINKS.push(NEW_MOCK_LINK);
+            newInteractionAdded = true;
+        }
     }
 
-    const relevantLinks = MOCK_INTERACTION_LINKS.filter(link => link.deal_id === dealId);
+    const relevantLinks = MOCK_INTERACTION_LINKS.filter(link => 
+        (params.dealId && link.deal_id === params.dealId) ||
+        (params.companyId && link.company_id === params.companyId) ||
+        (params.contactId && link.contact_id === params.contactId)
+    );
     const interactionIds = new Set(relevantLinks.map(link => link.interaction_id));
     return MOCK_INTERACTIONS
         .filter(interaction => interactionIds.has(interaction.interaction_id))
@@ -123,6 +126,31 @@ const getInteractionsForDeal = (dealId: string): Interaction[] => {
         })
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
+
+const createNewCompany = (companyData: NewCompany): Company => {
+    const newCompany: Company = {
+        ...companyData,
+        company_id: `comp-${Date.now()}`,
+        ai_summary: 'Newly added company.',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
+    MOCK_COMPANIES.push(newCompany);
+    return newCompany;
+}
+
+const createNewContact = (contactData: NewContact): Contact => {
+    const newContact: Contact = {
+        ...contactData,
+        contact_id: `cont-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
+    MOCK_CONTACTS.push(newContact);
+    return newContact;
+}
+
+// --- AI Handlers ---
 
 const handleSummarize = async (text: string): Promise<string> => {
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: `Summarize the following text into a concise paragraph, focusing on key decisions and action items:\n\n---\n${text}\n---` });
@@ -338,25 +366,50 @@ const originalFetch = window.fetch;
 const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = new URL(input instanceof Request ? input.url : input, window.location.origin);
     const { pathname, searchParams } = url;
+    const method = init?.method || 'GET';
     
-    console.log(`Intercepted FETCH call to: ${pathname}${url.search}`);
+    console.log(`Intercepted [${method}] call to: ${pathname}${url.search}`);
 
     await new Promise(resolve => setTimeout(resolve, API_LATENCY));
 
-    // --- Data Endpoints ---
-    if (pathname === '/api/deals' && init?.method !== 'POST') {
-        const data = getDeals();
+    // --- CRM Endpoints ---
+    if (pathname === '/api/companies' && method === 'GET') {
+        return new Response(JSON.stringify(MOCK_COMPANIES), { headers: { 'Content-Type': 'application/json' } });
+    }
+    if (pathname === '/api/companies' && method === 'POST') {
+        const companyData = JSON.parse(init.body as string) as NewCompany;
+        const newCompany = createNewCompany(companyData);
+        return new Response(JSON.stringify(newCompany), { status: 201, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (pathname === '/api/contacts' && method === 'GET') {
+        const companyId = searchParams.get('company_id');
+        let contacts = MOCK_CONTACTS;
+        if (companyId) {
+            contacts = contacts.filter(c => c.company_id === companyId);
+        }
+        return new Response(JSON.stringify(contacts), { headers: { 'Content-Type': 'application/json' } });
+    }
+     if (pathname === '/api/contacts' && method === 'POST') {
+        const contactData = JSON.parse(init.body as string) as NewContact;
+        const newContact = createNewContact(contactData);
+        return new Response(JSON.stringify(newContact), { status: 201, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (pathname === '/api/deals' && method === 'GET') {
+        const companyId = searchParams.get('company_id');
+        const data = getDeals({ companyId: companyId || undefined });
         return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
     }
-    if (pathname === '/api/interactions' && init?.method !== 'POST') {
+    if (pathname === '/api/interactions' && method === 'GET') {
         const dealId = searchParams.get('deal_id');
-        if (!dealId) return new Response('Missing deal_id', { status: 400 });
-        const data = getInteractionsForDeal(dealId);
+        const companyId = searchParams.get('company_id');
+        const contactId = searchParams.get('contact_id');
+        const data = getInteractions({ dealId: dealId || undefined, companyId: companyId || undefined, contactId: contactId || undefined });
         return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
     }
+    
     // Match proposal ID from path
     const proposalMatch = pathname.match(/^\/api\/proposals\/([a-zA-Z0-9-]+)$/);
-    if (proposalMatch && init?.method !== 'POST') {
+    if (proposalMatch && method === 'GET') {
         const proposalId = proposalMatch[1];
         const proposal = MOCK_PROPOSALS.find(p => p.proposal_id === proposalId);
         if (!proposal) return new Response('Proposal not found', { status: 404 });
@@ -365,7 +418,7 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
 
     // --- Proposal Actions ---
     const acceptMatch = pathname.match(/^\/api\/proposals\/([a-zA-Z0-9-]+)\/accept$/);
-    if (acceptMatch && init?.method === 'POST') {
+    if (acceptMatch && method === 'POST') {
         const proposalId = acceptMatch[1];
         const proposal = MOCK_PROPOSALS.find(p => p.proposal_id === proposalId);
         if (!proposal) return new Response('Proposal not found', { status: 404 });
@@ -377,7 +430,7 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
         return new Response(JSON.stringify(proposal), { headers: { 'Content-Type': 'application/json' } });
     }
     const payMatch = pathname.match(/^\/api\/proposals\/([a-zA-Z0-9-]+)\/pay$/);
-    if (payMatch && init?.method === 'POST') {
+    if (payMatch && method === 'POST') {
         const proposalId = payMatch[1];
         const proposal = MOCK_PROPOSALS.find(p => p.proposal_id === proposalId);
         if (!proposal) return new Response('Proposal not found', { status: 404 });
@@ -389,27 +442,27 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
 
 
     // --- AI Endpoints ---
-    if (pathname === '/api/summarize' && init?.method === 'POST') {
+    if (pathname === '/api/summarize' && method === 'POST') {
         const body = JSON.parse(init.body as string);
         const summary = await handleSummarize(body.text);
         return new Response(JSON.stringify({ summary }), { headers: { 'Content-Type': 'application/json' } });
     }
-    if (pathname === '/api/next-best-action' && init?.method === 'POST') {
+    if (pathname === '/api/next-best-action' && method === 'POST') {
         const { deal, interactions } = JSON.parse(init.body as string);
         const action = await handleGetNextBestAction(deal, interactions);
         return new Response(JSON.stringify({ action }), { headers: { 'Content-Type': 'application/json' } });
     }
-    if (pathname === '/api/copilot-response' && init?.method === 'POST') {
+    if (pathname === '/api/copilot-response' && method === 'POST') {
         const { prompt, deal, interactions } = JSON.parse(init.body as string);
         const responseText = await handleCoPilotResponse(prompt, deal, interactions);
         return new Response(JSON.stringify({ response: responseText }), { headers: { 'Content-Type': 'application/json' } });
     }
-    if (pathname === '/api/generate-proposal' && init?.method === 'POST') {
+    if (pathname === '/api/generate-proposal' && method === 'POST') {
          const { deal, interactions } = JSON.parse(init.body as string);
          const proposalId = await handleGenerateProposal(deal, interactions);
          return new Response(JSON.stringify({ proposalId }), { headers: { 'Content-Type': 'application/json' } });
     }
-    if (pathname === '/api/draft-email' && init?.method === 'POST') {
+    if (pathname === '/api/draft-email' && method === 'POST') {
         const { suggestion, deal, interactions } = JSON.parse(init.body as string);
         const emailDraft = await handleDraftEmail(suggestion, deal, interactions);
         return new Response(JSON.stringify(emailDraft), { headers: { 'Content-Type': 'application/json' } });

@@ -157,3 +157,40 @@ export const TrendingDownIcon: React.FC<{ className?: string }> = ({ className }
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
     </svg>
 );
+
+export const BriefcaseIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.07a2.25 2.25 0 01-2.25 2.25H5.92a2.25 2.25 0 01-2.15-2.521L4.21 6.22a2.25 2.25 0 012.15-1.928h11.28a2.25 2.25 0 012.15 1.928L20.8 11.48M12 4.5v.75m0 3v.75m0 3v.75m0 3V18m-3.375-3.375H12m2.75 0H12m-2.75 0H12" />
+    </svg>
+);
+
+export const BuildingOfficeIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6h1.5m-1.5 3h1.5m-1.5 3h1.5M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+    </svg>
+);
+
+export const UsersIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962c.56-1.634 1.325-3.136 2.133-4.502a9.09 9.09 0 014.242 0M12 12.75a4.5 4.5 0 110-9 4.5 4.5 0 010 9zM3.75 20.25a9.094 9.094 0 013.742-.479 3 3 0 014.682-2.72M6.375 16.01V14.25a4.5 4.5 0 016.364-4.243A4.5 4.5 0 0118 10.5v1.762a4.5 4.5 0 01-1.282 3.12 3 3 0 01-5.14 0A4.5 4.5 0 016.375 16.01z" />
+    </svg>
+);
+
+export const LifebuoyIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 12.75c1.148 0 2.278.08 3.383.237 1.037.148 1.893 1.073 1.893 2.176 0 1.288-1.036 2.335-2.32 2.335-1.743 0-3.155-1.412-3.155-3.155 0-.17.013-.338.038-.505 1.191.223 2.44.338 3.737.338 1.296 0 2.546-.115 3.737-.338m-11.237.001c1.191.223 2.44.338 3.737.338 1.296 0 2.546-.115 3.737-.338-1.104.157-2.235.237-3.383.237-1.148 0-2.278-.08-3.383-.237-.15-.021-.298-.044-.445-.068-1.037-.148-1.893-1.073-1.893-2.176 0-1.288 1.036-2.335 2.32-2.335 1.743 0 3.155 1.412 3.155 3.155 0 .17-.013.338-.038.505m1.56-6.192a3.155 3.155 0 013.155 3.155c0 .17-.013.338-.038.505-1.191.223-2.44.338-3.737.338-1.296 0-2.546-.115-3.737-.338.025-.167.038-.335.038-.505a3.155 3.155 0 013.155-3.155m-1.56 6.192c-1.191.223-2.44.338-3.737.338-1.296 0-2.546-.115-3.737-.338.025-.167.038-.335.038-.505a3.155 3.155 0 013.155-3.155 3.155 3.155 0 013.155 3.155c0 .17-.013.338-.038.505M12 21a9 9 0 100-18 9 9 0 000 18z" />
+    </svg>
+);
+
+export const MegaphoneIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5M15 15l5.25 5.25" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.26 1.075A11.95 11.95 0 0112 1.05c.875 0 1.738.09 2.584.253M10.26 1.075L7.5 12.332M13.74 1.075L16.5 12.332m0 0l-2.74 9.59m-3.02 0l-2.74-9.59m5.76 0h-5.76" />
+    </svg>
+);
+
+export const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+);
