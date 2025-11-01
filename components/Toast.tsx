@@ -5,6 +5,7 @@ interface ToastProps {
   message: string;
   show: boolean;
   onClose: () => void;
+  key?: any;
 }
 
 export const Toast: React.FC<ToastProps> = ({ message, show, onClose }) => {

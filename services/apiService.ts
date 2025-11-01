@@ -8,7 +8,6 @@ import { http } from './httpClient';
 
 export const fetchCompanies = async (): Promise<Company[]> => {
     const response = await http.fetch('/api/companies');
-    if (!response.ok) throw new Error('Failed to fetch companies');
     return response.json();
 };
 
@@ -18,14 +17,12 @@ export const createCompany = async (company: NewCompany): Promise<Company> => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(company),
     });
-    if (!response.ok) throw new Error('Failed to create company');
     return response.json();
 };
 
 export const fetchContacts = async (companyId?: string): Promise<Contact[]> => {
     const url = companyId ? `/api/contacts?company_id=${companyId}` : '/api/contacts';
     const response = await http.fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch contacts');
     return response.json();
 };
 
@@ -35,14 +32,12 @@ export const createContact = async (contact: NewContact): Promise<Contact> => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(contact),
     });
-    if (!response.ok) throw new Error('Failed to create contact');
     return response.json();
 }
 
 export const fetchDeals = async ({ companyId }: { companyId?: string } = {}): Promise<Deal[]> => {
     const url = companyId ? `/api/deals?company_id=${companyId}` : '/api/deals';
     const response = await http.fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch deals');
     return response.json();
 };
 
@@ -59,7 +54,6 @@ export const fetchInteractions = async (params: FetchInteractionsParams): Promis
     if (params.contactId) query.set('contact_id', params.contactId);
     
     const response = await http.fetch(`/api/interactions?${query.toString()}`);
-    if (!response.ok) throw new Error('Failed to fetch interactions');
     return response.json();
 };
 
@@ -67,7 +61,6 @@ export const fetchInteractions = async (params: FetchInteractionsParams): Promis
 
 export const fetchProposal = async (proposalId: string): Promise<Proposal> => {
     const response = await http.fetch(`/api/proposals/${proposalId}`);
-    if (!response.ok) throw new Error('Failed to fetch proposal');
     return response.json();
 };
 
@@ -77,7 +70,6 @@ export const acceptProposal = async (proposalId: string, signature: string, fina
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signature, finalValue, selectedItemIds }),
     });
-    if (!response.ok) throw new Error('Failed to accept proposal');
     return response.json();
 };
 
@@ -85,6 +77,5 @@ export const processProposalPayment = async (proposalId: string): Promise<Propos
     const response = await http.fetch(`/api/proposals/${proposalId}/pay`, {
         method: 'POST',
     });
-    if (!response.ok) throw new Error('Failed to process payment');
     return response.json();
 };

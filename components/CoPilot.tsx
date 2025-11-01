@@ -6,10 +6,9 @@ import { SparklesIcon } from './icons';
 interface CoPilotProps {
   deal: Deal;
   interactions: Interaction[];
-  setToastMessage: (message: string) => void;
 }
 
-export const CoPilot: React.FC<CoPilotProps> = ({ deal, interactions, setToastMessage }) => {
+export const CoPilot: React.FC<CoPilotProps> = ({ deal, interactions }) => {
   return (
     <div className="bg-background-light p-4 rounded-lg mt-6">
       <h3 className="text-lg font-bold flex items-center mb-4">
@@ -19,7 +18,6 @@ export const CoPilot: React.FC<CoPilotProps> = ({ deal, interactions, setToastMe
       <GooseChat 
         deal={deal} 
         interactions={interactions} 
-        setToastMessage={setToastMessage}
       />
     </div>
   );

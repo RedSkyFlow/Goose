@@ -10,7 +10,6 @@ export const summarizeText = async (text: string): Promise<string> => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   });
-  if (!response.ok) throw new Error('Network response was not ok');
   const data = await response.json();
   return data.summary;
 };
@@ -21,7 +20,6 @@ export const getNextBestAction = async (deal: Deal, interactions: Interaction[])
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ deal, interactions }),
   });
-  if (!response.ok) throw new Error('Network response was not ok');
   const data = await response.json();
   return data.action;
 };
@@ -32,7 +30,6 @@ export const getCoPilotResponse = async (prompt: string, deal?: Deal, interactio
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, deal, interactions }),
   });
-  if (!response.ok) throw new Error('Network response was not ok');
   const data = await response.json();
   return data.response;
 };
@@ -43,7 +40,6 @@ export const generateProposal = async (deal: Deal, interactions: Interaction[]):
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ deal, interactions }),
   });
-  if (!response.ok) throw new Error('Network response was not ok');
   const data = await response.json();
   return data.proposalId;
 };
@@ -54,6 +50,5 @@ export const draftEmail = async (suggestion: string, deal: Deal, interactions: I
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ suggestion, deal, interactions }),
     });
-    if (!response.ok) throw new Error('Network response was not ok');
     return response.json();
 }

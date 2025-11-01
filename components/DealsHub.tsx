@@ -5,12 +5,9 @@ import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
 import { RightSidebar } from './RightSidebar';
 import { fetchDeals, fetchInteractions } from '../services/apiService';
+import { useNotification } from '../contexts/NotificationContext';
 
-interface DealsHubProps {
-  setToastMessage: (message: string) => void;
-}
-
-export const DealsHub: React.FC<DealsHubProps> = ({ setToastMessage }) => {
+export const DealsHub: React.FC = () => {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(true);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -20,12 +17,13 @@ export const DealsHub: React.FC<DealsHubProps> = ({ setToastMessage }) => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<DealStage | 'All'>('All');
+  const { showToast } = useNotification();
 
   useEffect(() => {
     const loadDeals = async () => {
       try {
         setIsLoadingDeals(true);
-        const fetchedDeals = await fetchDeals();
+        const fetchedDeals = await fetchDeals({});
         setDeals(fetchedDeals);
         if (fetchedDeals.length > 0) {
           setSelectedDeal(fetchedDeals[0]);
@@ -68,7 +66,7 @@ export const DealsHub: React.FC<DealsHubProps> = ({ setToastMessage }) => {
     const loadInteractions = async () => {
       try {
         setIsLoadingInteractions(true);
-        const fetchedInteractions = await fetchInteractions(selectedDeal.deal_id);
+        const fetchedInteractions = await fetchInteractions({dealId: selectedDeal.deal_id});
         setInteractions(fetchedInteractions);
       } catch (err) {
         setError('Failed to load interactions for the selected deal.');
@@ -87,11 +85,11 @@ export const DealsHub: React.FC<DealsHubProps> = ({ setToastMessage }) => {
 
     const intervalId = setInterval(async () => {
       try {
-        const newInteractions = await fetchInteractions(selectedDeal.deal_id);
+        const newInteractions = await fetchInteractions({dealId: selectedDeal.deal_id});
         // Only update state if there's genuinely new data to avoid re-renders
         if (newInteractions.length > interactions.length) {
           setInteractions(newInteractions);
-          setToastMessage("Timeline updated!");
+          showToast("Timeline updated!");
         }
       } catch (err) {
         console.error('Polling for new interactions failed:', err);
@@ -99,7 +97,7 @@ export const DealsHub: React.FC<DealsHubProps> = ({ setToastMessage }) => {
     }, 15000); // Poll every 15 seconds
 
     return () => clearInterval(intervalId);
-  }, [selectedDeal, interactions, setToastMessage]);
+  }, [selectedDeal, interactions, showToast]);
 
   const handleSelectDeal = (deal: Deal) => {
     setSelectedDeal(deal);
@@ -109,9 +107,9 @@ export const DealsHub: React.FC<DealsHubProps> = ({ setToastMessage }) => {
     if (!selectedDeal) return;
     try {
         setIsLoadingInteractions(true);
-        const fetchedInteractions = await fetchInteractions(selectedDeal.deal_id);
+        const fetchedInteractions = await fetchInteractions({dealId: selectedDeal.deal_id});
         setInteractions(fetchedInteractions);
-        setToastMessage("Timeline updated!");
+        showToast("Timeline updated!");
     } catch (err) {
         setError('Failed to refresh interactions.');
         console.error(err);
@@ -149,7 +147,6 @@ export const DealsHub: React.FC<DealsHubProps> = ({ setToastMessage }) => {
       <RightSidebar 
         deal={selectedDeal} 
         interactions={interactions} 
-        setToastMessage={setToastMessage} 
       />
     </>
   );

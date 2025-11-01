@@ -2,19 +2,20 @@ import React, { useState, useCallback, useMemo } from 'react';
 import type { Deal, Interaction } from '../types';
 import { getNextBestAction, draftEmail, getCoPilotResponse } from '../services/geminiService';
 import { SendIcon, RefreshIcon, TaskIcon } from './icons';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface GooseChatProps {
   deal?: Deal;
   interactions?: Interaction[];
-  setToastMessage: (message: string) => void;
 }
 
-export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions, setToastMessage }) => {
+export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions }) => {
   const [suggestion, setSuggestion] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isActionInProgress, setIsActionInProgress] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [prompt, setPrompt] = useState<string>('');
+  const { showToast } = useNotification();
   
   const isDealContext = !!deal;
 
@@ -76,7 +77,7 @@ export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions, setToa
     if (actionType === 'CREATE_TASK') {
         try {
             await navigator.clipboard.writeText(suggestion);
-            setToastMessage('Task copied to clipboard!');
+            showToast('Task copied to clipboard!');
         } catch (err) {
             console.error('Failed to copy text: ', err);
             setError('Could not copy task to clipboard.');

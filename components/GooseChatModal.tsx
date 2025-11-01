@@ -6,13 +6,11 @@ import { SparklesIcon, CloseIcon } from './icons';
 interface GooseChatModalProps {
     isOpen: boolean;
     onClose: () => void;
-    setToastMessage: (message: string) => void;
 }
 
 export const GooseChatModal: React.FC<GooseChatModalProps> = ({ 
     isOpen, 
     onClose, 
-    setToastMessage
 }) => {
     if (!isOpen) return null;
 
@@ -41,9 +39,7 @@ export const GooseChatModal: React.FC<GooseChatModalProps> = ({
                     </button>
                 </div>
                 <div className="p-4">
-                    <GooseChat
-                        setToastMessage={setToastMessage}
-                    />
+                    <GooseChat />
                 </div>
             </div>
         </div>

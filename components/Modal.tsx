@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useRef } from 'react';
 import { CloseIcon } from './icons';
 
 interface ModalProps {
@@ -9,6 +9,33 @@ interface ModalProps {
 }
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+    const modalRef = useRef<HTMLDivElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            previousFocusRef.current = document.activeElement as HTMLElement;
+            
+            const timer = setTimeout(() => {
+                modalRef.current?.focus();
+            }, 100); // Delay focus to allow for transitions
+
+            const handleKeyDown = (event: KeyboardEvent) => {
+                if (event.key === 'Escape') {
+                    onClose();
+                }
+            };
+            
+            document.addEventListener('keydown', handleKeyDown);
+
+            return () => {
+                clearTimeout(timer);
+                document.removeEventListener('keydown', handleKeyDown);
+                previousFocusRef.current?.focus();
+            };
+        }
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     return (
@@ -19,7 +46,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
             role="dialog"
         >
             <div 
-                className="bg-background-light rounded-lg shadow-2xl w-full max-w-lg border border-primary/50 flex flex-col animate-fade-in-down"
+                ref={modalRef}
+                tabIndex={-1}
+                className="bg-background-light rounded-lg shadow-2xl w-full max-w-lg border border-primary/50 flex flex-col animate-fade-in-down focus:outline-none"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex justify-between items-center p-4 border-b border-primary/50">
