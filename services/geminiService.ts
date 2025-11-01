@@ -1,8 +1,15 @@
-import type { Deal, GeneratedProposalContent, Interaction, EmailDraft } from '../types';
+import type { Deal, GeneratedProposalContent, Interaction, EmailDraft, Company, Contact } from '../types';
 import { http } from './httpClient';
 
 // This file now acts as a client-side service that makes fetch calls
 // to our secure backend proxy endpoints.
+
+export interface CoPilotContext {
+  deal?: Deal;
+  company?: Company;
+  contact?: Contact;
+  interactions?: Interaction[];
+}
 
 export const summarizeText = async (text: string): Promise<string> => {
   const response = await http.fetch('/api/summarize', {
@@ -24,11 +31,11 @@ export const getNextBestAction = async (deal: Deal, interactions: Interaction[])
   return data.action;
 };
 
-export const getCoPilotResponse = async (prompt: string, deal?: Deal, interactions?: Interaction[]): Promise<string> => {
+export const getCoPilotResponse = async (prompt: string, context: CoPilotContext): Promise<string> => {
   const response = await http.fetch('/api/copilot-response', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, deal, interactions }),
+    body: JSON.stringify({ prompt, context }),
   });
   const data = await response.json();
   return data.response;

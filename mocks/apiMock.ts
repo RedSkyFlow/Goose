@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal, EmailDraft, ProposalItem, ROIProjection, NewCompany, NewContact } from '../types';
+import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal, EmailDraft, ProposalItem, ROIProjection, NewCompany, NewContact, } from '../types';
+import type { CoPilotContext } from '../services/geminiService';
 import { DealStage, InteractionType, PaymentStatus, ProposalStatus, Sentiment } from '../types';
 import { http } from '../services/httpClient';
 
@@ -11,14 +12,14 @@ import { http } from '../services/httpClient';
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
 const MOCK_COMPANIES: Company[] = [
-  { company_id: 'comp-1', name: 'The Grand Hotel', domain: 'grandhotel.com', industry: 'Hospitality', ai_summary: 'Luxury hotel chain focused on premium guest experiences.', created_at: '2023-01-15T09:00:00Z', updated_at: '2023-10-20T10:00:00Z' },
+  { company_id: 'comp-1', name: 'The Grand Hotel', domain: 'grandhotel.com', industry: 'Hospitality', ai_summary: 'Luxury hotel chain focused on premium guest experiences.', created_at: '2023-01-15T09:00:00Z', updated_at: '2023-10-20T10:00:00Z', status: 'hot' },
   { company_id: 'comp-2', name: 'Innovate Corp', domain: 'innovatecorp.com', industry: 'Technology', ai_summary: 'SaaS company providing cloud solutions, known for being budget-conscious.', created_at: '2023-02-20T11:00:00Z', updated_at: '2023-10-21T12:00:00Z' },
-  { company_id: 'comp-3', name: 'General Retail Inc.', domain: 'generalretail.com', industry: 'Retail', ai_summary: 'Large retail chain with 15 locations.', created_at: '2023-03-10T14:00:00Z', updated_at: '2023-11-10T15:00:00Z' },
+  { company_id: 'comp-3', name: 'General Retail Inc.', domain: 'generalretail.com', industry: 'Retail', ai_summary: 'Large retail chain with 15 locations.', created_at: '2023-03-10T14:00:00Z', updated_at: '2023-11-10T15:00:00Z', status: 'at_risk' },
 ];
 
 const MOCK_CONTACTS: Contact[] = [
-    { contact_id: 'cont-1', company_id: 'comp-1', first_name: 'John', last_name: 'Doe', email: 'john.doe@grandhotel.com', role: 'IT Director', created_at: '2023-10-26T10:00:00Z', updated_at: '2023-10-26T10:00:00Z' },
-    { contact_id: 'cont-2', company_id: 'comp-2', first_name: 'Michael', last_name: 'Chen', email: 'm.chen@innovatecorp.com', role: 'CTO', created_at: '2023-10-15T09:00:00Z', updated_at: '2023-10-15T09:00:00Z' },
+    { contact_id: 'cont-1', company_id: 'comp-1', first_name: 'John', last_name: 'Doe', email: 'john.doe@grandhotel.com', role: 'IT Director', created_at: '2023-10-26T10:00:00Z', updated_at: '2023-10-26T10:00:00Z', status: 'key_decision_maker' },
+    { contact_id: 'cont-2', company_id: 'comp-2', first_name: 'Michael', last_name: 'Chen', email: 'm.chen@innovatecorp.com', role: 'CTO', created_at: '2023-10-15T09:00:00Z', updated_at: '2023-10-15T09:00:00Z', status: 'key_decision_maker' },
     { contact_id: 'cont-3', company_id: 'comp-3', first_name: 'David', last_name: 'Ortiz', email: 'd.ortiz@generalretail.com', role: 'Operations Manager', created_at: '2023-11-10T11:20:00Z', updated_at: '2023-11-10T11:20:00Z' },
     { contact_id: 'cont-4', company_id: 'comp-1', first_name: 'Sarah', last_name: 'Jenkins', email: 'sarah.j@grandhotel.com', role: 'Project Manager', created_at: '2023-01-01T10:00:00Z', updated_at: '2023-01-01T10:00:00Z' },
     { contact_id: 'cont-5', company_id: 'comp-2', first_name: 'Emily', last_name: 'White', email: 'emily.w@innovatecorp.com', role: 'Account Manager', created_at: '2023-01-01T10:00:00Z', updated_at: '2023-01-01T10:00:00Z' },
@@ -164,19 +165,31 @@ const handleGetNextBestAction = async (deal: Deal, interactions: Interaction[]):
     return response.text;
 };
 
-const handleCoPilotResponse = async (prompt: string, deal?: Deal, interactions?: Interaction[]): Promise<string> => {
-    let context = '';
-    let systemInstruction = '';
+const handleCoPilotResponse = async (prompt: string, context: CoPilotContext): Promise<string> => {
+    let contextString = '';
+    let systemInstruction = 'You are "Goose", a helpful AI assistant for a business operating system.';
 
-    if (deal && interactions) {
-        // Deal-specific context
+    const { deal, company, contact, interactions } = context;
+
+    if (deal) {
         systemInstruction = `You are an expert sales co-pilot named Goose. You are assisting a sales representative with a specific deal.
 Based on the provided deal information, interaction history, and the user's question, provide a helpful and concise response.
 Analyze the context and the user's query to give an insightful answer. Do not just repeat the information given.
 If the user asks for an action that you can help with (like drafting an email, scheduling a call, creating a task), start your response with a clear action phrase like "Send email:", "Schedule call:", or "Create task:".`;
-        context = `Deal: ${deal.deal_name}\nValue: $${deal.value.toLocaleString()}\nCurrent Stage: ${deal.stage}\n\nInteraction History:\n${interactions.slice(0, 5).map(i => `[${new Date(i.timestamp).toLocaleDateString()} - ${i.type}]: ${i.ai_summary || i.content_raw.substring(0, 100)}...`).join('\n')}`;
-    } else {
-        // Global context
+        contextString = `Deal: ${deal.deal_name}\nValue: $${deal.value.toLocaleString()}\nCurrent Stage: ${deal.stage}\n\nInteraction History:\n${interactions?.slice(0, 5).map(i => `[${new Date(i.timestamp).toLocaleDateString()} - ${i.type}]: ${i.ai_summary || i.content_raw.substring(0, 100)}...`).join('\n')}`;
+    } else if (company) {
+         systemInstruction = `You are an expert business analyst named Goose, providing insights about a specific company.
+Based on the company data and recent interactions, answer the user's question. Provide an insightful summary, not just raw data.`;
+        const companyDeals = getDeals({ companyId: company.company_id });
+        const companyContacts = MOCK_CONTACTS.filter(c => c.company_id === company.company_id);
+        contextString = `Company: ${company.name}\nIndustry: ${company.industry}\nAI Summary: ${company.ai_summary}\n\nContacts: ${companyContacts.map(c => `${c.first_name} ${c.last_name} (${c.role})`).join(', ')}\n\nActive Deals: ${companyDeals.map(d => `${d.deal_name} ($${d.value.toLocaleString()})`).join(', ')}\n\nRecent Interactions:\n${interactions?.slice(0, 3).map(i => `[${new Date(i.timestamp).toLocaleDateString()} - ${i.type}]: ${i.ai_summary || i.content_raw.substring(0, 100)}...`).join('\n')}`;
+    } else if (contact) {
+         systemInstruction = `You are an expert business analyst named Goose, providing insights about a specific contact.
+Based on the contact's data and interaction history, answer the user's question. Focus on their role, sentiment, and key topics of discussion.`;
+        const parentCompany = MOCK_COMPANIES.find(c => c.company_id === contact.company_id);
+        contextString = `Contact: ${contact.first_name} ${contact.last_name}\nRole: ${contact.role}\nCompany: ${parentCompany?.name}\n\nRecent Interactions:\n${interactions?.slice(0, 5).map(i => `[${new Date(i.timestamp).toLocaleDateString()} - ${i.type}]: ${i.ai_summary || i.content_raw.substring(0, 100)}...`).join('\n')}`;
+    }
+    else {
         systemInstruction = `You are "Goose", a helpful AI assistant for a business operating system. You can answer questions about how to use the application, or you can search for information across all business data.
         You have access to the following data:
         - Companies: ${MOCK_COMPANIES.map(c => c.name).join(', ')}
@@ -184,12 +197,11 @@ If the user asks for an action that you can help with (like drafting an email, s
         - Contacts: ${MOCK_CONTACTS.map(c => `${c.first_name} ${c.last_name}`).join(', ')}
         
         When asked how to do something in the app, provide clear, step-by-step instructions.
-        When asked to find information, query your available data and provide a concise summary.
-        For example, if asked about a company, find its deal and last interaction date.`;
-        context = `User is asking a question in a global context, not specific to any single deal.`;
+        When asked to find information, query your available data and provide a concise summary.`;
+        contextString = `User is asking a question in a global context, not specific to any single deal.`;
     }
 
-    const fullPrompt = `${context}\n\nUser Question: ${prompt}`;
+    const fullPrompt = `${contextString}\n\nUser Question: ${prompt}`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-pro',
@@ -453,8 +465,8 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
         return new Response(JSON.stringify({ action }), { headers: { 'Content-Type': 'application/json' } });
     }
     if (pathname === '/api/copilot-response' && method === 'POST') {
-        const { prompt, deal, interactions } = JSON.parse(init.body as string);
-        const responseText = await handleCoPilotResponse(prompt, deal, interactions);
+        const { prompt, context } = JSON.parse(init.body as string);
+        const responseText = await handleCoPilotResponse(prompt, context);
         return new Response(JSON.stringify({ response: responseText }), { headers: { 'Content-Type': 'application/json' } });
     }
     if (pathname === '/api/generate-proposal' && method === 'POST') {

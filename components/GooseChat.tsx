@@ -1,15 +1,17 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import type { Deal, Interaction } from '../types';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import type { Deal, Interaction, Company, Contact } from '../types';
 import { getNextBestAction, draftEmail, getCoPilotResponse } from '../services/geminiService';
 import { SendIcon, RefreshIcon, TaskIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
 
 interface GooseChatProps {
   deal?: Deal;
+  company?: Company;
+  contact?: Contact;
   interactions?: Interaction[];
 }
 
-export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions }) => {
+export const GooseChat: React.FC<GooseChatProps> = ({ deal, company, contact, interactions }) => {
   const [suggestion, setSuggestion] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isActionInProgress, setIsActionInProgress] = useState<boolean>(false);
@@ -18,6 +20,16 @@ export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions }) => {
   const { showToast } = useNotification();
   
   const isDealContext = !!deal;
+  const isContextual = !!deal || !!company || !!contact;
+
+  useEffect(() => {
+    // Reset all relevant state when the context (deal, company, contact) changes.
+    setSuggestion('');
+    setError('');
+    setIsLoading(false);
+    setIsActionInProgress(false);
+    setPrompt('');
+  }, [deal, company, contact]);
 
   const handleFetch = useCallback(async (currentPrompt: string) => {
     setIsLoading(true);
@@ -26,10 +38,11 @@ export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions }) => {
 
     try {
       let result: string;
+      const context = { deal, company, contact, interactions };
       if (isDealContext && currentPrompt === "What's my next best action?") {
         result = await getNextBestAction(deal, interactions!);
       } else {
-        result = await getCoPilotResponse(currentPrompt, deal, interactions);
+        result = await getCoPilotResponse(currentPrompt, context);
       }
       setSuggestion(result);
     } catch (err) {
@@ -39,9 +52,9 @@ export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [deal, interactions, isDealContext]);
+  }, [deal, company, contact, interactions, isDealContext]);
 
-  const defaultQuery = isDealContext ? "What's my next best action?" : "How can I help you today?";
+  const defaultQuery = isDealContext ? "What's my next best action?" : "Summarize this for me.";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +64,8 @@ export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions }) => {
   };
 
   const handleTryAgain = useCallback(() => {
-    handleFetch("What's my next best action?");
-  }, [handleFetch]);
+    handleFetch(defaultQuery);
+  }, [handleFetch, defaultQuery]);
 
   // Determine action type from suggestion text
   const actionType = useMemo(() => {
@@ -141,9 +154,14 @@ export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions }) => {
   const isActionable = (actionType === 'DRAFT_EMAIL' || actionType === 'SCHEDULE_CALL' || actionType === 'CREATE_TASK') && isDealContext;
   const { text: acceptButtonText, title: acceptButtonTitle } = getAcceptButtonTextAndTitle();
 
-  const initialMessage = isDealContext 
-    ? "Ask a question or send an empty message for your next best action."
+  const initialMessage = isContextual 
+    ? "Ask a question, or send an empty message for a smart suggestion."
     : "How can I help you navigate the app or find information?";
+  
+  const placeholderText = isDealContext ? "Ask about this deal..."
+    : company ? "Ask about this company..."
+    : contact ? "Ask about this contact..."
+    : "Ask Goose anything...";
 
   return (
     <>
@@ -201,7 +219,7 @@ export const GooseChat: React.FC<GooseChatProps> = ({ deal, interactions }) => {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             className="flex-grow bg-background text-foreground placeholder-foreground/50 p-2 rounded-md border border-primary/50 focus:ring-2 focus:ring-secondary focus:outline-none disabled:opacity-50"
-            placeholder={isDealContext ? "Ask about this deal..." : "Ask Goose anything..."}
+            placeholder={placeholderText}
             disabled={isLoading}
         />
         <button

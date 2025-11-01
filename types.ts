@@ -1,5 +1,7 @@
 // Core CRM Entities
 
+export type ItemStatus = 'hot' | 'at_risk' | 'key_decision_maker';
+
 export interface Company {
   company_id: string; // UUID (PK)
   name: string;
@@ -8,9 +10,10 @@ export interface Company {
   ai_summary: string;
   created_at: string; // TIMESTAMPTZ
   updated_at: string; // TIMESTAMPTZ
+  status?: ItemStatus;
 }
 
-export type NewCompany = Omit<Company, 'company_id' | 'created_at' | 'updated_at' | 'ai_summary'>;
+export type NewCompany = Omit<Company, 'company_id' | 'created_at' | 'updated_at' | 'ai_summary' | 'status'>;
 
 export interface Contact {
   contact_id: string; // UUID (PK)
@@ -23,9 +26,10 @@ export interface Contact {
   ai_persona_summary?: string;
   created_at: string; // TIMESTAMPTZ
   updated_at: string; // TIMESTAMPTZ
+  status?: ItemStatus;
 }
 
-export type NewContact = Omit<Contact, 'contact_id' | 'created_at' | 'updated_at' | 'ai_persona_summary'>;
+export type NewContact = Omit<Contact, 'contact_id' | 'created_at' | 'updated_at' | 'ai_persona_summary' | 'status'>;
 
 export enum DealStage {
   PROSPECTING = 'Prospecting',

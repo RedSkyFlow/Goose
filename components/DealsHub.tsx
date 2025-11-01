@@ -145,7 +145,7 @@ export const DealsHub: React.FC = () => {
         onRefresh={handleRefreshInteractions}
       />
       <RightSidebar 
-        deal={selectedDeal} 
+        item={selectedDeal} 
         interactions={interactions} 
       />
     </>

@@ -2,7 +2,7 @@ import React from 'react';
 import type { Deal } from '../types';
 import { DealStage } from '../types';
 import { UserProfile } from './UserProfile';
-import { SearchIcon, FireIcon, ExclamationTriangleIcon } from './icons';
+import { SearchIcon, FireIcon, ExclamationTriangleIcon, ThumbsUpIcon, ProposalIcon, UsersIcon } from './icons';
 
 interface SidebarProps {
   deals: Deal[];
@@ -23,6 +23,12 @@ const SidebarSkeleton: React.FC = () => (
     </div>
 );
 
+const stageFilters = [
+    { id: DealStage.PROSPECTING, label: 'Prospecting', icon: <SearchIcon className="w-4 h-4 mr-1.5" /> },
+    { id: DealStage.QUALIFYING, label: 'Qualifying', icon: <ThumbsUpIcon className="w-4 h-4 mr-1.5" /> },
+    { id: DealStage.PROPOSAL, label: 'Proposal', icon: <ProposalIcon className="w-4 h-4 mr-1.5" /> },
+    { id: DealStage.NEGOTIATION, label: 'Negotiation', icon: <UsersIcon className="w-4 h-4 mr-1.5" /> },
+];
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
     deals, 
@@ -34,8 +40,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     activeFilter,
     onFilterChange
 }) => {
-  const filters: (DealStage | 'All')[] = ['All', DealStage.PROSPECTING, DealStage.QUALIFYING, DealStage.PROPOSAL, DealStage.NEGOTIATION];
-
   const isRecent = (timestamp?: string) => {
     if (!timestamp) return false;
     const threeDaysAgo = new Date();
@@ -61,17 +65,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 />
             </div>
             <div className="flex flex-wrap gap-2">
-                {filters.map(filter => (
+                 <button
+                    onClick={() => onFilterChange('All')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                        activeFilter === 'All'
+                            ? 'bg-secondary text-white'
+                            : 'bg-primary/20 text-foreground/80 hover:bg-primary/40'
+                    }`}
+                >
+                    All
+                </button>
+                {stageFilters.map(filter => (
                     <button
-                        key={filter}
-                        onClick={() => onFilterChange(filter)}
-                        className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
-                            activeFilter === filter
+                        key={filter.id}
+                        onClick={() => onFilterChange(filter.id)}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center ${
+                            activeFilter === filter.id
                                 ? 'bg-secondary text-white'
                                 : 'bg-primary/20 text-foreground/80 hover:bg-primary/40'
                         }`}
                     >
-                        {filter}
+                        {filter.icon}
+                        {filter.label}
                     </button>
                 ))}
             </div>
