@@ -24,10 +24,21 @@ const MOCK_CONTACTS: Contact[] = [
     { contact_id: 'cont-5', company_id: 'comp-2', first_name: 'Emily', last_name: 'White', email: 'emily.w@flow.com', role: 'Account Manager', created_at: '2023-01-01T10:00:00Z', updated_at: '2023-01-01T10:00:00Z' },
 ];
 
+const generateHistory = (start: number, end: number, points: number): { date: string; score: number }[] => {
+    const history = [];
+    for (let i = 0; i < points; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - (points - 1 - i));
+        const score = start + Math.round(((end - start) / (points - 1)) * i + (Math.random() - 0.5) * 10);
+        history.push({ date: date.toISOString().split('T')[0], score: Math.max(0, Math.min(100, score)) });
+    }
+    return history;
+}
+
 const MOCK_DEALS: Deal[] = [
-  { deal_id: 'deal-1', company_id: 'comp-1', deal_name: 'The Grand Hotel Network Upgrade', value: 250000, stage: DealStage.PROPOSAL, close_date_expected: '2024-03-31', ai_health_score: 85, ai_next_best_action: 'Follow up on proposal feedback by end of week.', created_at: '2023-10-26T10:00:00Z', updated_at: '2023-11-05T11:00:00Z' },
-  { deal_id: 'deal-2', company_id: 'comp-2', deal_name: 'Innovate Corp Cloud Migration', value: 120000, stage: DealStage.NEGOTIATION, close_date_expected: '2024-02-29', ai_health_score: 65, ai_next_best_action: 'Present revised offer with phased implementation.', created_at: '2023-10-15T09:00:00Z', updated_at: '2023-10-21T10:00:00Z' },
-  { deal_id: 'deal-3', company_id: 'comp-3', deal_name: 'Retail Chain POS System', value: 75000, stage: DealStage.QUALIFYING, close_date_expected: '2024-04-30', ai_health_score: 42, ai_next_best_action: 'Schedule a discovery call to understand requirements.', created_at: '2023-11-10T11:20:00Z', updated_at: '2023-11-10T11:20:00Z' },
+  { deal_id: 'deal-1', company_id: 'comp-1', deal_name: 'The Grand Hotel Network Upgrade', value: 250000, stage: DealStage.PROPOSAL, close_date_expected: '2024-03-31', ai_health_score: 85, ai_next_best_action: 'Follow up on proposal feedback by end of week.', created_at: '2023-10-26T10:00:00Z', updated_at: '2023-11-05T11:00:00Z', ai_health_score_history: generateHistory(70, 85, 30) },
+  { deal_id: 'deal-2', company_id: 'comp-2', deal_name: 'Innovate Corp Cloud Migration', value: 120000, stage: DealStage.NEGOTIATION, close_date_expected: '2024-02-29', ai_health_score: 65, ai_next_best_action: 'Present revised offer with phased implementation.', created_at: '2023-10-15T09:00:00Z', updated_at: '2023-10-21T10:00:00Z', ai_health_score_history: generateHistory(80, 65, 30) },
+  { deal_id: 'deal-3', company_id: 'comp-3', deal_name: 'Retail Chain POS System', value: 75000, stage: DealStage.QUALIFYING, close_date_expected: '2024-04-30', ai_health_score: 42, ai_next_best_action: 'Schedule a discovery call to understand requirements.', created_at: '2023-11-10T11:20:00Z', updated_at: '2023-11-10T11:20:00Z', ai_health_score_history: generateHistory(40, 42, 30) },
 ];
 
 const MOCK_INTERACTIONS: Interaction[] = [
@@ -134,6 +145,43 @@ const handleGetNextBestAction = async (deal: Deal, interactions: Interaction[]):
     const timelineSummary = interactions.map(i => `[${i.timestamp} - ${i.type} by ${i.author?.name || 'Unknown'}]: ${i.ai_summary || i.content_raw.substring(0, 150)}...`).join('\n');
     const prompt = `You are an expert sales co-pilot. Based on the following deal information and interaction history, suggest the single, most impactful "next best action" for the sales representative to take to move this deal forward. Be concise and actionable.\n\nDeal: ${deal.deal_name}\nValue: $${deal.value.toLocaleString()}\nCurrent Stage: ${deal.stage}\n\nInteraction History:\n${timelineSummary}`;
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+    return response.text;
+};
+
+const handleCoPilotResponse = async (prompt: string, deal?: Deal, interactions?: Interaction[]): Promise<string> => {
+    let context = '';
+    let systemInstruction = '';
+
+    if (deal && interactions) {
+        // Deal-specific context
+        systemInstruction = `You are an expert sales co-pilot named Goose. You are assisting a sales representative with a specific deal.
+Based on the provided deal information, interaction history, and the user's question, provide a helpful and concise response.
+Analyze the context and the user's query to give an insightful answer. Do not just repeat the information given.
+If the user asks for an action that you can help with (like drafting an email, scheduling a call, creating a task), start your response with a clear action phrase like "Send email:", "Schedule call:", or "Create task:".`;
+        context = `Deal: ${deal.deal_name}\nValue: $${deal.value.toLocaleString()}\nCurrent Stage: ${deal.stage}\n\nInteraction History:\n${interactions.slice(0, 5).map(i => `[${new Date(i.timestamp).toLocaleDateString()} - ${i.type}]: ${i.ai_summary || i.content_raw.substring(0, 100)}...`).join('\n')}`;
+    } else {
+        // Global context
+        systemInstruction = `You are "Goose", a helpful AI assistant for a business operating system. You can answer questions about how to use the application, or you can search for information across all business data.
+        You have access to the following data:
+        - Companies: ${MOCK_COMPANIES.map(c => c.name).join(', ')}
+        - Active Deals: ${MOCK_DEALS.map(d => d.deal_name).join(', ')}
+        - Contacts: ${MOCK_CONTACTS.map(c => `${c.first_name} ${c.last_name}`).join(', ')}
+        
+        When asked how to do something in the app, provide clear, step-by-step instructions.
+        When asked to find information, query your available data and provide a concise summary.
+        For example, if asked about a company, find its deal and last interaction date.`;
+        context = `User is asking a question in a global context, not specific to any single deal.`;
+    }
+
+    const fullPrompt = `${context}\n\nUser Question: ${prompt}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-pro',
+      contents: fullPrompt,
+      config: {
+        systemInstruction,
+      },
+    });
     return response.text;
 };
 
@@ -273,6 +321,11 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
         const { deal, interactions } = JSON.parse(init.body as string);
         const action = await handleGetNextBestAction(deal, interactions);
         return new Response(JSON.stringify({ action }), { headers: { 'Content-Type': 'application/json' } });
+    }
+    if (pathname === '/api/copilot-response' && init?.method === 'POST') {
+        const { prompt, deal, interactions } = JSON.parse(init.body as string);
+        const responseText = await handleCoPilotResponse(prompt, deal, interactions);
+        return new Response(JSON.stringify({ response: responseText }), { headers: { 'Content-Type': 'application/json' } });
     }
     if (pathname === '/api/generate-proposal' && init?.method === 'POST') {
          const { deal, interactions } = JSON.parse(init.body as string);

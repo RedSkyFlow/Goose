@@ -26,6 +26,17 @@ export const getNextBestAction = async (deal: Deal, interactions: Interaction[])
   return data.action;
 };
 
+export const getCoPilotResponse = async (prompt: string, deal?: Deal, interactions?: Interaction[]): Promise<string> => {
+  const response = await http.fetch('/api/copilot-response', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, deal, interactions }),
+  });
+  if (!response.ok) throw new Error('Network response was not ok');
+  const data = await response.json();
+  return data.response;
+};
+
 export const generateProposal = async (deal: Deal, interactions: Interaction[]): Promise<GeneratedProposalContent> => {
   const response = await http.fetch('/api/generate-proposal', {
     method: 'POST',

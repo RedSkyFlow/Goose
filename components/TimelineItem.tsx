@@ -98,6 +98,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({ interaction, isLast 
                         onClick={handleSummarize}
                         disabled={isLoading}
                         className="text-sm text-secondary hover:opacity-80 font-semibold disabled:text-foreground/40 flex items-center transition-colors"
+                        title="Use AI to summarize this interaction"
                     >
                         {isLoading ? (
                             <>

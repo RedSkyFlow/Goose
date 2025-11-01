@@ -24,6 +24,7 @@ export const UserProfile: React.FC = () => {
         onClick={signOut} 
         className="p-2 rounded-full hover:bg-primary/20 text-foreground/80 transition-colors"
         aria-label="Sign out"
+        title="Sign out"
       >
         <LogoutIcon className="w-5 h-5" />
       </button>

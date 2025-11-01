@@ -6,6 +6,8 @@ import { MainContent } from './MainContent';
 import { RightSidebar } from './RightSidebar';
 import { Toast } from './Toast';
 import { fetchDeals, fetchInteractions } from '../services/apiService';
+import { FloatingGooseButton } from './FloatingGooseButton';
+import { GooseChatModal } from './GooseChatModal';
 
 export const GooseOS: React.FC = () => {
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -15,6 +17,7 @@ export const GooseOS: React.FC = () => {
   const [isLoadingInteractions, setIsLoadingInteractions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('');
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<DealStage | 'All'>('All');
@@ -163,6 +166,12 @@ export const GooseOS: React.FC = () => {
         deal={selectedDeal} 
         interactions={interactions} 
         setToastMessage={setToastMessage} 
+      />
+      <FloatingGooseButton onClick={() => setIsChatModalOpen(true)} />
+      <GooseChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+        setToastMessage={setToastMessage}
       />
     </div>
   );

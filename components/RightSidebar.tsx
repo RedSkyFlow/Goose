@@ -27,7 +27,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ deal, interactions, 
       <div>
         <h3 className="text-lg font-semibold mb-4 text-foreground/90">Predictive Scoring</h3>
         <div className="flex justify-center bg-background/50 p-4 rounded-lg">
-          <HealthScore score={deal.ai_health_score} label="Deal Health Score" />
+          <HealthScore 
+            score={deal.ai_health_score} 
+            label="Deal Health Score"
+            history={deal.ai_health_score_history}
+          />
         </div>
       </div>
       

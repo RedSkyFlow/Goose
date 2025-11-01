@@ -44,6 +44,7 @@ export interface Deal {
   created_at: string; // TIMESTAMPTZ
   updated_at: string; // TIMESTAMPTZ
   last_interaction_at?: string; // TIMESTAMPTZ
+  ai_health_score_history?: { date: string; score: number }[];
 }
 
 // The AI Context Engine
