@@ -6,9 +6,11 @@ import { acceptProposal } from '../../services/apiService';
 interface SignatureBlockProps {
   proposal: Proposal;
   onProposalUpdate: (updatedProposal: Proposal) => void;
+  finalValue: number;
+  selectedItemIds: string[];
 }
 
-export const SignatureBlock: React.FC<SignatureBlockProps> = ({ proposal, onProposalUpdate }) => {
+export const SignatureBlock: React.FC<SignatureBlockProps> = ({ proposal, onProposalUpdate, finalValue, selectedItemIds }) => {
   const [signature, setSignature] = useState('');
   const [consent, setConsent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +24,7 @@ export const SignatureBlock: React.FC<SignatureBlockProps> = ({ proposal, onProp
     setError('');
     setIsLoading(true);
     try {
-      const updatedProposal = await acceptProposal(proposal.proposal_id, signature);
+      const updatedProposal = await acceptProposal(proposal.proposal_id, signature, finalValue, selectedItemIds);
       onProposalUpdate(updatedProposal);
     } catch (e) {
       setError('Could not accept the proposal. Please try again.');
@@ -43,6 +45,9 @@ export const SignatureBlock: React.FC<SignatureBlockProps> = ({ proposal, onProp
             <div className="bg-background/50 p-4 rounded-lg border border-accent/50">
                 <p className="text-foreground/80">Signed by: <span className="font-bold text-foreground">{proposal.signature}</span></p>
                 <p className="text-foreground/80">Date: <span className="font-bold text-foreground">{new Date(proposal.signed_at!).toLocaleString()}</span></p>
+                {proposal.final_accepted_value && (
+                    <p className="text-foreground/80 mt-2">Final Agreed Value: <span className="font-bold text-accent">${proposal.final_accepted_value.toLocaleString()}</span></p>
+                )}
             </div>
         </div>
     )
@@ -56,7 +61,7 @@ export const SignatureBlock: React.FC<SignatureBlockProps> = ({ proposal, onProp
       </h2>
       <div className="bg-background/50 p-4 rounded-lg border border-primary/50">
         <p className="text-sm text-foreground/70 mb-4">
-          By signing below, you agree to the terms and conditions outlined in this proposal.
+          By signing below, you agree to the terms and conditions outlined in this proposal for the selected items totalling <span className="font-bold text-accent">${finalValue.toLocaleString()}</span>.
         </p>
         <div className="mb-4">
           <label htmlFor="signature" className="block text-sm font-medium text-foreground/90 mb-1">

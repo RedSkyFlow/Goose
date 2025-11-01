@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Proposal, Deal, PaymentStatus, ProposalStatus } from '../../types';
+import { Proposal, Deal, PaymentStatus } from '../../types';
 import { CreditCardIcon, CheckCircleIcon } from '../icons';
 import { processProposalPayment } from '../../services/apiService';
 
@@ -7,14 +7,20 @@ interface PaymentBlockProps {
   proposal: Proposal;
   deal: Deal;
   onProposalUpdate: (updatedProposal: Proposal) => void;
+  finalValue: number;
 }
 
-export const PaymentBlock: React.FC<PaymentBlockProps> = ({ proposal, deal, onProposalUpdate }) => {
+export const PaymentBlock: React.FC<PaymentBlockProps> = ({ proposal, deal, onProposalUpdate, finalValue }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // FIX: Moved the formatCurrency function to before its first use to avoid a block-scoped variable error.
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  }
   
   const isPaid = proposal.payment_status === PaymentStatus.PAID;
-  const depositAmount = deal.value * 0.5; // Assuming 50% deposit
+  const depositAmount = finalValue * 0.5; // Use the final accepted value
 
   const handlePay = async () => {
     setError('');
@@ -37,7 +43,7 @@ export const PaymentBlock: React.FC<PaymentBlockProps> = ({ proposal, deal, onPr
                 Payment Complete
             </h2>
             <div className="bg-background/50 p-4 rounded-lg border border-accent/50">
-                <p className="text-foreground/80">A deposit of <span className="font-bold text-foreground">${depositAmount.toLocaleString()}</span> has been paid.</p>
+                <p className="text-foreground/80">A deposit of <span className="font-bold text-foreground">{formatCurrency(depositAmount)}</span> has been paid.</p>
                 <p className="text-xs text-foreground/70 mt-1">Transaction ID: {proposal.payment_gateway_tx_id}</p>
             </div>
         </div>
@@ -52,12 +58,12 @@ export const PaymentBlock: React.FC<PaymentBlockProps> = ({ proposal, deal, onPr
       </h2>
       <div className="bg-background/50 p-4 rounded-lg border border-primary/50">
         <div className="flex justify-between items-center mb-4">
-            <span className="text-foreground/80">Total Proposal Value:</span>
-            <span className="font-bold text-lg text-foreground">${deal.value.toLocaleString()}</span>
+            <span className="text-foreground/80">Total Agreed Value:</span>
+            <span className="font-bold text-lg text-foreground">{formatCurrency(finalValue)}</span>
         </div>
         <div className="flex justify-between items-center mb-4 text-accent font-semibold">
             <span>50% Deposit Due:</span>
-            <span className="font-bold text-xl">${depositAmount.toLocaleString()}</span>
+            <span className="font-bold text-xl">{formatCurrency(depositAmount)}</span>
         </div>
         <p className="text-sm text-foreground/70 mb-4">
           Click below to securely pay the deposit via Stripe.
@@ -71,7 +77,7 @@ export const PaymentBlock: React.FC<PaymentBlockProps> = ({ proposal, deal, onPr
           {isLoading ? (
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-background"></div>
           ) : (
-            `Pay Deposit ($${depositAmount.toLocaleString()})`
+            `Pay Deposit (${formatCurrency(depositAmount)})`
           )}
         </button>
       </div>

@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal, EmailDraft } from '../types';
+import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal, EmailDraft, ProposalItem, ROIProjection } from '../types';
 import { DealStage, InteractionType, PaymentStatus, ProposalStatus, Sentiment } from '../types';
 import { http } from '../services/httpClient';
 
@@ -61,19 +61,7 @@ const MOCK_INTERACTION_LINKS: InteractionLink[] = [
     { interaction_id: 'int-7', deal_id: 'deal-3', company_id: 'comp-3', contact_id: 'cont-3' },
 ];
 
-const MOCK_PROPOSALS: Proposal[] = [
-    {
-        proposal_id: 'prop-1',
-        deal_id: 'deal-1',
-        version: 1,
-        status: ProposalStatus.SENT,
-        ai_initial_draft: `**Project: Comprehensive Network Infrastructure Upgrade**\n\n**1. Introduction**\nThis document outlines a proposal for a complete network infrastructure upgrade for The Grand Hotel, designed to address the identified needs for enhanced reliability, security, and performance to elevate the guest experience.\n\n**2. Understanding Your Needs**\nBased on our discovery call, we understand The Grand Hotel's primary challenges include slow guest WiFi, unreliable connectivity in key areas like conference rooms, and outdated network security. These issues pose a risk to guest satisfaction and operational efficiency, especially with the peak season approaching.\n\n**3. Proposed Solution**\nWe propose a phased implementation of a state-of-the-art, unified network solution from Ubiquiti. This includes:\n- High-density WiFi 6 access points for superior guest coverage.\n- A robust, scalable switching infrastructure to eliminate bottlenecks.\n- A next-generation security gateway for threat protection and secure access.\n\n**4. Pricing**\nThe total investment for the proposed solution, including all hardware, installation, and configuration, is $250,000.`,
-        sent_at: '2023-11-05T10:00:00Z',
-        payment_status: PaymentStatus.NONE,
-        created_at: '2023-11-05T09:00:00Z',
-        updated_at: '2023-11-05T10:00:00Z',
-    }
-];
+const MOCK_PROPOSALS: Proposal[] = [];
 
 
 let refresh_counter = 0;
@@ -185,9 +173,49 @@ If the user asks for an action that you can help with (like drafting an email, s
     return response.text;
 };
 
-const handleGenerateProposal = async (deal: Deal, interactions: Interaction[]): Promise<GeneratedProposalContent> => {
-    const timelineSummary = interactions.map(i => `On ${i.timestamp}, a ${i.type} interaction occurred. Content: ${i.ai_summary || i.content_raw}`).join('\n\n');
-    const prompt = `Analyze the following interaction history for the deal "${deal.deal_name}" and generate a structured sales proposal in JSON format.\n\nInteraction History:\n---\n${timelineSummary}\n---\n\nBased on the history, identify the client's primary pain points and needs. Then, craft a compelling proposal that addresses these needs. The output must be a valid JSON object following the specified schema.`;
+const handleGenerateProposal = async (deal: Deal, interactions: Interaction[]): Promise<string> => {
+    const timelineSummary = interactions.map(i => `On ${new Date(i.timestamp).toDateString()}, a ${i.type} interaction occurred with ${i.author?.name || 'the client'}. Content: ${i.ai_summary || i.content_raw}`).join('\n\n');
+    const clientName = MOCK_COMPANIES.find(c => c.company_id === deal.company_id)?.name || 'Valued Client';
+
+    const prompt = `
+    You are an expert B2B proposal writer named Goose. Your task is to analyze a deal's interaction history and generate a comprehensive, persuasive, and itemized proposal in a structured JSON format.
+
+    **Deal Information:**
+    - Deal Name: "${deal.deal_name}"
+    - Client: "${clientName}"
+    - Approximate Total Value: $${deal.value.toLocaleString()}
+
+    **Interaction History:**
+    ---
+    ${timelineSummary}
+    ---
+
+    **Instructions:**
+    Based on the information, generate a professional sales proposal. The output MUST be a valid JSON object following the schema.
+    1.  **Infer Products/Services:** From the deal name and interactions, invent a plausible, itemized list of 3-5 products and services. For a "Network Upgrade," items could be "Access Points," "Managed Switches," "Installation," and "Support Subscription."
+    2.  **Distribute Value:** Distribute the total deal value realistically among the itemized products/services. The sum of item prices should be close to the total deal value.
+    3.  **Be Creative & Professional:** Write compelling descriptions, features, and ROI projections. The tone should be professional and client-centric.
+
+    **JSON Schema to follow:**
+    - proposalTitle: "A professional title for the proposal."
+    - clientName: "The client's name."
+    - executiveSummary: "A compelling opening statement (2-3 sentences) summarizing the client's main challenge and the high-level value of our solution."
+    - clientChallenges: "Based on the interaction history, detail the client's specific problems, needs, and objectives in a short paragraph."
+    - solutionItems: "An array of 3-5 itemized products/services."
+        - id: "A unique identifier string, e.g., 'item-1'."
+        - name: "Product/Service name."
+        - description: "A concise description of the item."
+        - features: "An array of 3-4 key feature strings."
+        - price: "A numeric price for this item."
+        - type: "'one-time' for products/services, or 'recurring' for subscriptions."
+        - quantity: "The quantity, typically 1 unless it's per-unit hardware."
+    - roiProjections: "An array of 2-3 potential ROI benefits."
+        - metric: "The metric being improved, e.g., 'Guest Satisfaction Score'."
+        - value: "The projected improvement, e.g., '+25%'."
+        - description: "A brief explanation of how our solution achieves this."
+    - termsAndConditions: "Standard T&Cs text, including payment terms (e.g., 50% deposit, net 30) and a warranty period."
+    `;
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-pro',
       contents: prompt,
@@ -196,17 +224,65 @@ const handleGenerateProposal = async (deal: Deal, interactions: Interaction[]): 
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            introduction: { type: Type.STRING, description: 'A brief, engaging introduction for the proposal.' },
-            clientNeeds: { type: Type.STRING, description: "A summary of the client's identified needs and pain points, written from a perspective of understanding their challenges." },
-            proposedSolution: { type: Type.STRING, description: 'A description of the proposed solution that directly addresses the client needs.' },
-            pricing: { type: Type.STRING, description: `A placeholder for the pricing section, set to the value of the deal which is $${deal.value.toLocaleString()}. For example: "The total investment for this solution is $${deal.value.toLocaleString()}."` },
+            proposalTitle: { type: Type.STRING },
+            clientName: { type: Type.STRING },
+            executiveSummary: { type: Type.STRING },
+            clientChallenges: { type: Type.STRING },
+            solutionItems: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  name: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  features: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  price: { type: Type.NUMBER },
+                  type: { type: Type.STRING },
+                  quantity: { type: Type.NUMBER },
+                },
+                required: ["id", "name", "description", "features", "price", "type", "quantity"],
+              },
+            },
+            roiProjections: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  metric: { type: Type.STRING },
+                  value: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                },
+                required: ["metric", "value", "description"],
+              },
+            },
+            termsAndConditions: { type: Type.STRING },
           },
-          required: ["introduction", "clientNeeds", "proposedSolution", "pricing"],
+          required: ["proposalTitle", "clientName", "executiveSummary", "clientChallenges", "solutionItems", "roiProjections", "termsAndConditions"],
         },
       },
     });
-    return JSON.parse(response.text) as GeneratedProposalContent;
+
+    const content = JSON.parse(response.text) as GeneratedProposalContent;
+    const newProposalId = `prop-${MOCK_PROPOSALS.length + 1}`;
+    
+    const newProposal: Proposal = {
+        proposal_id: newProposalId,
+        deal_id: deal.deal_id,
+        version: 1,
+        status: ProposalStatus.DRAFT,
+        content: content,
+        sent_at: new Date().toISOString(),
+        payment_status: PaymentStatus.NONE,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
+
+    MOCK_PROPOSALS.push(newProposal);
+
+    return newProposalId;
 };
+
 
 const handleDraftEmail = async (suggestion: string, deal: Deal, interactions: Interaction[]): Promise<EmailDraft> => {
     const recipientInteraction = interactions.find(i => i.author?.email);
@@ -293,10 +369,11 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
         const proposalId = acceptMatch[1];
         const proposal = MOCK_PROPOSALS.find(p => p.proposal_id === proposalId);
         if (!proposal) return new Response('Proposal not found', { status: 404 });
-        const { signature } = JSON.parse(init.body as string);
+        const { signature, finalValue } = JSON.parse(init.body as string);
         proposal.status = ProposalStatus.ACCEPTED;
         proposal.signed_at = new Date().toISOString();
         proposal.signature = signature;
+        proposal.final_accepted_value = finalValue;
         return new Response(JSON.stringify(proposal), { headers: { 'Content-Type': 'application/json' } });
     }
     const payMatch = pathname.match(/^\/api\/proposals\/([a-zA-Z0-9-]+)\/pay$/);
@@ -329,8 +406,8 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
     }
     if (pathname === '/api/generate-proposal' && init?.method === 'POST') {
          const { deal, interactions } = JSON.parse(init.body as string);
-         const proposal = await handleGenerateProposal(deal, interactions);
-         return new Response(JSON.stringify(proposal), { headers: { 'Content-Type': 'application/json' } });
+         const proposalId = await handleGenerateProposal(deal, interactions);
+         return new Response(JSON.stringify({ proposalId }), { headers: { 'Content-Type': 'application/json' } });
     }
     if (pathname === '/api/draft-email' && init?.method === 'POST') {
         const { suggestion, deal, interactions } = JSON.parse(init.body as string);

@@ -29,11 +29,11 @@ export const fetchProposal = async (proposalId: string): Promise<Proposal> => {
     return response.json();
 };
 
-export const acceptProposal = async (proposalId: string, signature: string): Promise<Proposal> => {
+export const acceptProposal = async (proposalId: string, signature: string, finalValue: number, selectedItemIds: string[]): Promise<Proposal> => {
     const response = await http.fetch(`/api/proposals/${proposalId}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ signature }),
+        body: JSON.stringify({ signature, finalValue, selectedItemIds }),
     });
     if (!response.ok) {
         throw new Error('Failed to accept proposal');

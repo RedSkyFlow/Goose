@@ -109,15 +109,15 @@ export interface Proposal {
     deal_id: string; // UUID (FK)
     version: number;
     status: ProposalStatus;
-    google_doc_id?: string;
     public_share_url?: string;
-    ai_initial_draft: string;
-    final_content?: string;
+    content: GeneratedProposalContent; // Replaces ai_initial_draft
+    final_content?: string; // Could store the state upon acceptance
     sent_at?: string; // TIMESTAMPTZ
     signed_at?: string; // TIMESTAMPTZ
     signature?: string; // Name of the signer
     payment_status: PaymentStatus;
     payment_gateway_tx_id?: string;
+    final_accepted_value?: number;
     created_at: string; // TIMESTAMPTZ
     updated_at: string; // TIMESTAMPTZ
 }
@@ -139,12 +139,32 @@ export interface ProposalTracking {
     viewer_ip_address?: string;
 }
 
-// For AI Generation
+// For AI Generation of Interactive Proposals
+
+export interface ProposalItem {
+    id: string; // e.g., 'item-1'
+    name: string; // e.g., "High-Density WiFi 6 Access Points"
+    description: string;
+    features: string[]; // List of key features
+    price: number;
+    type: 'one-time' | 'recurring';
+    quantity: number;
+}
+
+export interface ROIProjection {
+    metric: string; // e.g., "Reduction in Guest Complaints"
+    value: string; // e.g., "Up to 40%"
+    description: string;
+}
+
 export interface GeneratedProposalContent {
-    introduction: string;
-    clientNeeds: string;
-    proposedSolution: string;
-    pricing: string;
+    proposalTitle: string;
+    clientName: string;
+    executiveSummary: string;
+    clientChallenges: string;
+    solutionItems: ProposalItem[];
+    roiProjections: ROIProjection[];
+    termsAndConditions: string;
 }
 
 export interface EmailDraft {

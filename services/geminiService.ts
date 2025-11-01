@@ -37,14 +37,15 @@ export const getCoPilotResponse = async (prompt: string, deal?: Deal, interactio
   return data.response;
 };
 
-export const generateProposal = async (deal: Deal, interactions: Interaction[]): Promise<GeneratedProposalContent> => {
+export const generateProposal = async (deal: Deal, interactions: Interaction[]): Promise<string> => {
   const response = await http.fetch('/api/generate-proposal', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ deal, interactions }),
   });
   if (!response.ok) throw new Error('Network response was not ok');
-  return response.json();
+  const data = await response.json();
+  return data.proposalId;
 };
 
 export const draftEmail = async (suggestion: string, deal: Deal, interactions: Interaction[]): Promise<EmailDraft> => {
