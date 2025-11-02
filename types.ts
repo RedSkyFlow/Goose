@@ -180,3 +180,61 @@ export interface EmailDraft {
     body: string;
     to: string;
 }
+
+// Support Hub Module
+
+export enum SupportTicketStatus {
+    OPEN = 'OPEN',
+    PENDING = 'PENDING',
+    CLOSED = 'CLOSED',
+}
+
+export interface SupportTicket {
+    ticket_id: string; // UUID (PK)
+    contact_id: string; // UUID (FK)
+    status: SupportTicketStatus;
+    subject: string;
+    interaction_ids: string[]; // Array of interaction UUIDs
+    created_at: string; // TIMESTAMPTZ
+    updated_at: string; // TIMESTAMPTZ
+}
+
+export type NewSupportTicket = Omit<SupportTicket, 'ticket_id' | 'created_at' | 'updated_at' | 'status' | 'interaction_ids'> & { initial_message: string };
+
+// Marketing Hub Module
+
+export interface TechStackItem {
+    name: string;
+    category: 'CMS' | 'Analytics' | 'Marketing Automation' | 'CRM' | 'Other';
+    description: string;
+}
+
+export interface ProspectContact {
+    name: string;
+    role: string;
+    linkedin_url?: string;
+    ai_outreach_suggestion: string;
+}
+
+export interface RecentNews {
+    title: string;
+    url: string;
+    published_date: string; // DATE
+    summary: string;
+}
+
+export interface ProspectProfile {
+    domain: string;
+    company_name: string;
+    summary: string;
+    industry: string;
+    talking_points: string[];
+    tech_stack: TechStackItem[];
+    key_contacts: ProspectContact[];
+    recent_news: RecentNews[];
+}
+
+export interface GeneratedLead {
+    company_name: string;
+    domain: string;
+}

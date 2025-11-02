@@ -1,4 +1,4 @@
-import type { Deal, GeneratedProposalContent, Interaction, EmailDraft, Company, Contact } from '../types';
+import type { Deal, GeneratedProposalContent, Interaction, EmailDraft, Company, Contact, SupportTicket, ProspectProfile } from '../types';
 import { http } from './httpClient';
 
 // This file now acts as a client-side service that makes fetch calls
@@ -8,6 +8,8 @@ export interface CoPilotContext {
   deal?: Deal;
   company?: Company;
   contact?: Contact;
+  ticket?: SupportTicket;
+  prospect?: ProspectProfile;
   interactions?: Interaction[];
 }
 

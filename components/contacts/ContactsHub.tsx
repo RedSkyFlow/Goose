@@ -7,8 +7,17 @@ import { ContactFormModal } from './ContactFormModal';
 import { useNotification } from '../../contexts/NotificationContext';
 import { MasterListSidebar } from '../MasterListSidebar';
 import { RightSidebar } from '../RightSidebar';
+import type { NavigationTarget } from '../GooseOS';
+import type { Hub } from '../MainNavbar';
+// FIX: Import ItemStatus to use as a more specific type for the filter state.
+import { ItemStatus } from '../../types';
 
-export const ContactsHub: React.FC = () => {
+interface ContactsHubProps {
+    navigationTarget: NavigationTarget | null;
+    onNavigate: (hub: Hub, itemId: string) => void;
+}
+
+export const ContactsHub: React.FC<ContactsHubProps> = ({ navigationTarget, onNavigate }) => {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -17,6 +26,10 @@ export const ContactsHub: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    const [searchTerm, setSearchTerm] = useState('');
+    // FIX: Changed state type from `string` to the more specific `ItemStatus` union for better type safety.
+    const [activeFilter, setActiveFilter] = useState<ItemStatus | 'All'>('All');
 
     const { showToast } = useNotification();
 
@@ -43,6 +56,15 @@ export const ContactsHub: React.FC = () => {
     useEffect(() => {
         loadInitialData();
     }, []);
+
+    useEffect(() => {
+        if (navigationTarget?.hub === 'Contacts' && contacts.length > 0) {
+            const targetContact = contacts.find(c => c.contact_id === navigationTarget.itemId);
+            if (targetContact && targetContact.contact_id !== selectedContact?.contact_id) {
+                setSelectedContact(targetContact);
+            }
+        }
+    }, [navigationTarget, contacts, selectedContact]);
 
     useEffect(() => {
         if (!selectedContact) {
@@ -73,6 +95,33 @@ export const ContactsHub: React.FC = () => {
         setIsModalOpen(false);
     };
     
+    const contactFilterOptions = [
+        { id: 'key_decision_maker', label: 'Key Decision Maker', icon: <KeyIcon className="w-4 h-4 mr-1.5" /> },
+    ];
+    
+    const filteredContacts = useMemo(() => {
+        return contacts
+            .filter(contact => {
+                if (activeFilter === 'All') return true;
+                return contact.status === activeFilter;
+            })
+            .filter(contact => {
+                const lowercasedTerm = searchTerm.toLowerCase();
+                const fullName = `${contact.first_name} ${contact.last_name}`;
+                // FIX: Assuming a faulty generic search caused the error, replaced with direct property access.
+                // Also removed redundant check on `contact.email` as it's a required property.
+                return fullName.toLowerCase().includes(lowercasedTerm) || 
+                       contact.email.toLowerCase().includes(lowercasedTerm);
+            });
+    }, [contacts, searchTerm, activeFilter]);
+    
+    useEffect(() => {
+        if (selectedContact && !filteredContacts.find(c => c.contact_id === selectedContact.contact_id)) {
+            setSelectedContact(filteredContacts.length > 0 ? filteredContacts[0] : null);
+        }
+    }, [filteredContacts, selectedContact]);
+
+
     const renderListItem = (contact: Contact, isSelected: boolean) => (
         <div className={`p-3 rounded-lg transition-colors duration-200 ${
             isSelected ? 'bg-secondary text-white shadow-md' : 'hover:bg-primary/20 text-foreground'
@@ -114,7 +163,10 @@ export const ContactsHub: React.FC = () => {
                     <div className="mt-2 text-sm space-y-1">
                         <a href={`mailto:${selectedContact.email}`} className="text-secondary hover:underline flex items-center"><UserIcon className="w-4 h-4 mr-2 text-foreground/60"/>{selectedContact.email}</a>
                         {selectedContactCompany && (
-                            <p className="flex items-center"><BuildingOfficeIcon className="w-4 h-4 mr-2 text-foreground/60"/>{selectedContactCompany.name}</p>
+                            <button onClick={() => onNavigate('Companies', selectedContactCompany.company_id)} className="flex items-center text-left text-secondary hover:underline">
+                                <BuildingOfficeIcon className="w-4 h-4 mr-2 text-foreground/60"/>
+                                <span>{selectedContactCompany.name}</span>
+                            </button>
                         )}
                     </div>
                 </div>
@@ -138,14 +190,20 @@ export const ContactsHub: React.FC = () => {
             />
             <MasterListSidebar
                 title="Contacts"
-                items={contacts}
+                items={filteredContacts}
                 selectedItem={selectedContact}
                 onSelectItem={setSelectedContact}
                 renderListItem={renderListItem}
-                searchKeys={['first_name', 'last_name', 'email']}
                 onAddItem={() => setIsModalOpen(true)}
                 isLoading={isLoading}
                 itemIdentifier="contact_id"
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                searchPlaceholder="Search contacts..."
+                filterOptions={contactFilterOptions}
+                activeFilter={activeFilter}
+                // FIX: Pass a new function to onFilterChange to ensure type compatibility between the prop and the state dispatcher.
+                onFilterChange={(filter) => setActiveFilter(filter as ItemStatus | 'All')}
             />
             <MainContent />
             <RightSidebar item={selectedContact} interactions={interactions} />

@@ -1,14 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Deal, Interaction } from '../types';
+import type { Deal, Interaction, Company } from '../types';
 import { DealStage } from '../types';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
 import { RightSidebar } from './RightSidebar';
-import { fetchDeals, fetchInteractions } from '../services/apiService';
+import { fetchDeals, fetchInteractions, fetchCompanies } from '../services/apiService';
 import { useNotification } from '../contexts/NotificationContext';
+import type { NavigationTarget } from './GooseOS';
+import type { Hub } from './MainNavbar';
 
-export const DealsHub: React.FC = () => {
+interface DealsHubProps {
+  navigationTarget: NavigationTarget | null;
+  onNavigate: (hub: Hub, itemId: string) => void;
+}
+
+export const DealsHub: React.FC<DealsHubProps> = ({ navigationTarget, onNavigate }) => {
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(true);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
@@ -20,11 +28,13 @@ export const DealsHub: React.FC = () => {
   const { showToast } = useNotification();
 
   useEffect(() => {
-    const loadDeals = async () => {
+    const loadData = async () => {
       try {
         setIsLoadingDeals(true);
-        const fetchedDeals = await fetchDeals({});
+        const [fetchedDeals, fetchedCompanies] = await Promise.all([fetchDeals({}), fetchCompanies()]);
         setDeals(fetchedDeals);
+        setCompanies(fetchedCompanies);
+
         if (fetchedDeals.length > 0) {
           setSelectedDeal(fetchedDeals[0]);
         }
@@ -35,8 +45,17 @@ export const DealsHub: React.FC = () => {
         setIsLoadingDeals(false);
       }
     };
-    loadDeals();
+    loadData();
   }, []);
+
+  useEffect(() => {
+    if (navigationTarget?.hub === 'Deals' && deals.length > 0) {
+      const targetDeal = deals.find(d => d.deal_id === navigationTarget.itemId);
+      if (targetDeal && targetDeal.deal_id !== selectedDeal?.deal_id) {
+        setSelectedDeal(targetDeal);
+      }
+    }
+  }, [navigationTarget, deals, selectedDeal]);
 
   const filteredDeals = useMemo(() => {
     return deals
@@ -48,6 +67,12 @@ export const DealsHub: React.FC = () => {
         return deal.deal_name.toLowerCase().includes(searchTerm.toLowerCase());
       });
   }, [deals, searchTerm, activeFilter]);
+
+  const selectedCompany = useMemo(() => {
+    if (!selectedDeal) return null;
+    return companies.find(c => c.company_id === selectedDeal.company_id) || null;
+  }, [selectedDeal, companies]);
+
 
   useEffect(() => {
     // If a deal is selected but it gets filtered out by search/filter,
@@ -140,9 +165,11 @@ export const DealsHub: React.FC = () => {
       />
       <MainContent 
         deal={selectedDeal} 
+        company={selectedCompany}
         interactions={interactions}
         isLoadingInteractions={isLoadingInteractions}
         onRefresh={handleRefreshInteractions}
+        onNavigate={onNavigate}
       />
       <RightSidebar 
         item={selectedDeal} 

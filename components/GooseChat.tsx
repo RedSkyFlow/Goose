@@ -1,237 +1,238 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import type { Deal, Interaction, Company, Contact } from '../types';
-import { getNextBestAction, draftEmail, getCoPilotResponse } from '../services/geminiService';
-import { SendIcon, RefreshIcon, TaskIcon } from './icons';
+import type { Deal, Interaction, Company, Contact, SupportTicket, ProspectProfile } from '../types';
+import { getCoPilotResponse, draftEmail } from '../services/geminiService';
+import { SendIcon, TaskIcon, LightBulbIcon, EmailIcon, NoteIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
+import { MarkdownContent } from './shared/MarkdownContent';
 
 interface GooseChatProps {
   deal?: Deal;
   company?: Company;
   contact?: Contact;
+  ticket?: SupportTicket;
+  prospect?: ProspectProfile;
   interactions?: Interaction[];
 }
 
-export const GooseChat: React.FC<GooseChatProps> = ({ deal, company, contact, interactions }) => {
-  const [suggestion, setSuggestion] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isActionInProgress, setIsActionInProgress] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [prompt, setPrompt] = useState<string>('');
-  const { showToast } = useNotification();
-  
-  const isDealContext = !!deal;
-  const isContextual = !!deal || !!company || !!contact;
+type View = 'summary' | 'chat';
 
-  useEffect(() => {
-    // Reset all relevant state when the context (deal, company, contact) changes.
-    setSuggestion('');
-    setError('');
-    setIsLoading(false);
-    setIsActionInProgress(false);
-    setPrompt('');
-  }, [deal, company, contact]);
+const Spinner: React.FC = () => (
+    <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary"></div>
+    </div>
+);
 
-  const handleFetch = useCallback(async (currentPrompt: string) => {
-    setIsLoading(true);
-    setSuggestion('');
-    setError('');
+const QuickActionButton: React.FC<{ onClick: () => void; children: React.ReactNode; title?: string }> = ({ onClick, children, title }) => (
+    <button
+        onClick={onClick}
+        title={title}
+        className="flex items-center text-left w-full p-2.5 rounded-md bg-primary/20 text-foreground/80 hover:bg-primary/40 transition-colors text-sm"
+    >
+        {children}
+    </button>
+);
 
-    try {
-      let result: string;
-      const context = { deal, company, contact, interactions };
-      if (isDealContext && currentPrompt === "What's my next best action?") {
-        result = await getNextBestAction(deal, interactions!);
-      } else {
-        result = await getCoPilotResponse(currentPrompt, context);
-      }
-      setSuggestion(result);
-    } catch (err) {
-      console.error(err);
-      setError('Sorry, I encountered an error getting a response.');
-      setSuggestion('');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [deal, company, contact, interactions, isDealContext]);
+export const GooseChat: React.FC<GooseChatProps> = ({ deal, company, contact, ticket, prospect, interactions }) => {
+    const [view, setView] = useState<View>('summary');
+    const [summary, setSummary] = useState('');
+    const [chatResponse, setChatResponse] = useState('');
+    const [isLoadingSummary, setIsLoadingSummary] = useState(true);
+    const [isLoadingResponse, setIsLoadingResponse] = useState(false);
+    const [isActionInProgress, setIsActionInProgress] = useState(false);
+    const [error, setError] = useState('');
+    const [prompt, setPrompt] = useState('');
+    const { showToast } = useNotification();
 
-  const defaultQuery = isDealContext ? "What's my next best action?" : "Summarize this for me.";
+    const contextObject = useMemo(() => ({ deal, company, contact, ticket, prospect }), [deal, company, contact, ticket, prospect]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = prompt.trim() || defaultQuery;
-    setPrompt(''); // Clear input after sending
-    handleFetch(query);
-  };
-
-  const handleTryAgain = useCallback(() => {
-    handleFetch(defaultQuery);
-  }, [handleFetch, defaultQuery]);
-
-  // Determine action type from suggestion text
-  const actionType = useMemo(() => {
-    if (!suggestion) return null;
-    const lowerSuggestion = suggestion.toLowerCase();
-    if (lowerSuggestion.includes('email') || lowerSuggestion.includes('follow up')) {
-      return 'DRAFT_EMAIL';
-    }
-    if (lowerSuggestion.includes('call') || lowerSuggestion.includes('schedule a meeting')) {
-        return 'SCHEDULE_CALL';
-    }
-    if (lowerSuggestion.includes('task') || lowerSuggestion.includes('to-do')) {
-        return 'CREATE_TASK';
-    }
-    return 'GENERIC_ACCEPT';
-  }, [suggestion]);
-
-
-  const handleAcceptSuggestion = async () => {
-    if (!suggestion || !deal || !interactions) return;
-
-    if (actionType === 'CREATE_TASK') {
+    const handleApiResponse = useCallback(async (currentPrompt: string, context: any) => {
         try {
-            await navigator.clipboard.writeText(suggestion);
-            showToast('Task copied to clipboard!');
+            const result = await getCoPilotResponse(currentPrompt, context);
+            return { data: result, error: null };
         } catch (err) {
-            console.error('Failed to copy text: ', err);
-            setError('Could not copy task to clipboard.');
+            console.error(err);
+            const errorMessage = `Sorry, I encountered an error. Please try again.`;
+            setError(errorMessage);
+            return { data: null, error: errorMessage };
         }
-        return;
-    }
+    }, []);
 
-    if (actionType === 'DRAFT_EMAIL') {
+    useEffect(() => {
+        const generateSummary = async () => {
+            if (!contextObject.deal && !contextObject.company && !contextObject.contact && !contextObject.ticket && !contextObject.prospect) {
+                setSummary('Select an item to see an AI-powered summary and quick actions.');
+                setIsLoadingSummary(false);
+                return;
+            }
+
+            setIsLoadingSummary(true);
+            setError('');
+            setChatResponse('');
+            setView('summary');
+            
+            const contextType = deal ? 'DEAL' : company ? 'COMPANY' : contact ? 'CONTACT' : ticket ? 'TICKET' : prospect ? 'PROSPECT' : null;
+            if (!contextType) {
+                setIsLoadingSummary(false);
+                return;
+            }
+            const summaryPrompt = `GENERATE_SUMMARY:${contextType}`;
+            
+            const { data } = await handleApiResponse(summaryPrompt, { ...contextObject, interactions });
+            if (data) {
+                setSummary(data);
+            }
+            setIsLoadingSummary(false);
+        };
+
+        generateSummary();
+    }, [contextObject, interactions, handleApiResponse, deal, company, contact, ticket, prospect]);
+
+    const handleQuickAction = useCallback(async (actionPrompt: string) => {
+        setView('chat');
+        setIsLoadingResponse(true);
+        setChatResponse('');
+        setError('');
+
+        const { data } = await handleApiResponse(actionPrompt, { ...contextObject, interactions });
+        if (data) {
+            setChatResponse(data);
+        }
+        setIsLoadingResponse(false);
+    }, [handleApiResponse, contextObject, interactions]);
+
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const query = prompt.trim();
+        if (!query) return;
+
+        setView('chat');
+        setIsLoadingResponse(true);
+        setChatResponse('');
+        setPrompt('');
+        setError('');
+
+        handleApiResponse(query, { ...contextObject, interactions }).then(({ data }) => {
+            if (data) setChatResponse(data);
+            setIsLoadingResponse(false);
+        });
+    };
+    
+    const actionType = useMemo(() => {
+        if (!chatResponse) return null;
+        const lowerResponse = chatResponse.toLowerCase();
+        if (lowerResponse.includes('email') || lowerResponse.includes('follow up')) return 'DRAFT_EMAIL';
+        if (lowerResponse.includes('task') || lowerResponse.includes('to-do')) return 'CREATE_TASK';
+        return 'GENERIC';
+    }, [chatResponse]);
+
+    const handleExecuteAction = async () => {
+        if (!chatResponse || !deal || !interactions) return;
+    
         setIsActionInProgress(true);
         setError('');
         try {
-            const emailContent = await draftEmail(suggestion, deal, interactions);
-            const subject = encodeURIComponent(emailContent.subject);
-            const body = encodeURIComponent(emailContent.body);
-            const mailtoLink = `mailto:${emailContent.to}?subject=${subject}&body=${body}`;
-            window.location.href = mailtoLink;
+            if (actionType === 'DRAFT_EMAIL') {
+                const email = await draftEmail(chatResponse, deal, interactions);
+                const mailto = `mailto:${email.to}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`;
+                window.location.href = mailto;
+            } else if (actionType === 'CREATE_TASK') {
+                await navigator.clipboard.writeText(chatResponse);
+                showToast('Task copied to clipboard!');
+            }
         } catch (err) {
             console.error(err);
-            setError('Could not draft the email. Please try again.');
+            setError(`Could not execute action. Please try again.`);
         } finally {
             setIsActionInProgress(false);
         }
-    } else if (actionType === 'SCHEDULE_CALL') {
-        const recipientInteraction = interactions.find(i => i.author?.email);
-        const recipient = recipientInteraction?.author;
+    };
 
-        const calendarLink = new URL('https://calendar.google.com/calendar/render');
-        calendarLink.searchParams.set('action', 'TEMPLATE');
-        calendarLink.searchParams.set('text', `Call with ${deal.deal_name}`);
-        calendarLink.searchParams.set('details', `Follow-up call based on Goose suggestion:\n\n"${suggestion}"`);
-        
-        if (recipient?.email) {
-            calendarLink.searchParams.set('add', recipient.email);
-        }
+    const getQuickActions = () => {
+        if (prospect) return [
+            { icon: <EmailIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Draft Cold Email', prompt: "Draft a personalized cold outreach email to this prospect based on their profile.", title: "Generate a draft email to the prospect" },
+            { icon: <LightBulbIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Generate Content Idea', prompt: "Suggest a blog post title that would appeal to this prospect.", title: "Get a content idea tailored to this prospect" },
+        ];
+        if (deal) return [
+            { icon: <LightBulbIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Smart Suggestion', prompt: "What is the single best action I can take right now?", title: "Get an AI-powered suggestion for your next best action" },
+            { icon: <EmailIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Draft Follow-up Email', prompt: "Draft a follow-up email based on the last interaction.", title: "Generate a draft email to the client" },
+            { icon: <NoteIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Summarize Timeline', prompt: "Summarize the key events in this deal's timeline.", title: "Get a bulleted summary of all interactions" },
+        ];
+        if (ticket) return [
+            { icon: <EmailIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Draft a Reply', prompt: "Draft a helpful and empathetic reply to the customer.", title: "Generate a draft reply to send to the customer" },
+            { icon: <NoteIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Summarize Thread', prompt: "Summarize this support thread in 3 bullet points.", title: "Get a quick summary of the support conversation" },
+            { icon: <TaskIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Suggest KB Article', prompt: "Based on the issue, suggest a relevant knowledgebase article title I could send them.", title: "Get a suggestion for a helpful article" },
+        ];
+        if (company || contact) return [
+             { icon: <LightBulbIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Identify Key People', prompt: "Based on the interactions, who are the key decision-makers and influencers at this company?", title: "Find the most important contacts" },
+             { icon: <EmailIcon className="w-5 h-5 mr-3 text-secondary"/>, label: 'Draft Outreach Email', prompt: "Draft a concise outreach email to this person or company.", title: "Generate a cold outreach email draft" },
+        ];
+        return [];
+    };
 
-        // Set a default time for tomorrow at 10 AM for 30 mins
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(10, 0, 0, 0);
-        
-        const startTime = tomorrow.toISOString().replace(/-|:|\.\d{3}/g, '');
+    const contextName = deal ? 'deal' : company ? 'company' : contact ? 'contact' : ticket ? 'ticket' : prospect ? 'prospect' : null;
 
-        tomorrow.setMinutes(tomorrow.getMinutes() + 30);
-        const endTime = tomorrow.toISOString().replace(/-|:|\.\d{3}/g, '');
-
-        calendarLink.searchParams.set('dates', `${startTime}/${endTime}`);
-
-        window.open(calendarLink.toString(), '_blank');
-    }
-  };
-
-  const getAcceptButtonTextAndTitle = () => {
-    switch(actionType) {
-        case 'DRAFT_EMAIL': return { text: 'Draft Email', title: 'Open a pre-filled email draft in your default mail client' };
-        case 'SCHEDULE_CALL': return { text: 'Schedule Call', title: 'Open a pre-filled Google Calendar invite' };
-        case 'CREATE_TASK': return { text: 'Add Task', title: 'Copy the task description to your clipboard' };
-        default: return { text: 'Accept', title: 'Accept the suggestion' };
-    }
-  }
-  
-  const isActionable = (actionType === 'DRAFT_EMAIL' || actionType === 'SCHEDULE_CALL' || actionType === 'CREATE_TASK') && isDealContext;
-  const { text: acceptButtonText, title: acceptButtonTitle } = getAcceptButtonTextAndTitle();
-
-  const initialMessage = isContextual 
-    ? "Ask a question, or send an empty message for a smart suggestion."
-    : "How can I help you navigate the app or find information?";
-  
-  const placeholderText = isDealContext ? "Ask about this deal..."
-    : company ? "Ask about this company..."
-    : contact ? "Ask about this contact..."
-    : "Ask Goose anything...";
-
-  return (
-    <>
-      <div className="bg-background rounded-lg p-3 min-h-[120px] text-foreground/80 text-sm flex flex-col justify-center">
-        {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary"></div>
+    return (
+        <div className="flex flex-col h-full">
+            <div className="bg-background rounded-lg p-3 text-foreground/80 text-sm flex-grow flex flex-col min-h-[150px]">
+                {error ? (
+                    <div className="text-red-400 p-2">{error}</div>
+                ) : view === 'summary' ? (
+                    isLoadingSummary ? <Spinner /> : (
+                        <div className="flex flex-col justify-between h-full">
+                            <div className="flex-grow overflow-y-auto pr-2">
+                                <MarkdownContent content={summary} />
+                            </div>
+                            <div className="space-y-2 mt-4 pt-3 border-t border-primary/20">
+                                {getQuickActions().map(action => (
+                                    <QuickActionButton key={action.label} onClick={() => handleQuickAction(action.prompt)} title={action.title}>
+                                        {action.icon} {action.label}
+                                    </QuickActionButton>
+                                ))}
+                            </div>
+                        </div>
+                    )
+                ) : ( // Chat view
+                    isLoadingResponse ? <Spinner /> : (
+                        <div className="flex flex-col justify-between h-full">
+                           <div className="flex-grow overflow-y-auto pr-2">
+                                <MarkdownContent content={chatResponse} />
+                           </div>
+                           <div className="mt-4 flex items-center justify-end space-x-2 border-t border-primary/20 pt-3">
+                                <button onClick={() => setView('summary')} className="px-3 py-2 text-xs font-semibold rounded-md transition-colors bg-primary/20 text-foreground/80 hover:bg-primary/40">
+                                    Back to Summary
+                                </button>
+                                {deal && (actionType === 'DRAFT_EMAIL' || actionType === 'CREATE_TASK') && (
+                                    <button onClick={handleExecuteAction} disabled={isActionInProgress} className="px-3 py-2 text-xs font-semibold rounded-md transition-colors bg-secondary text-white hover:opacity-90 disabled:bg-secondary/50 flex items-center">
+                                        {isActionInProgress ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div> Working...</> : (
+                                            actionType === 'DRAFT_EMAIL' ? 'Draft Email' : 'Copy Task'
+                                        )}
+                                    </button>
+                                )}
+                           </div>
+                        </div>
+                    )
+                )}
             </div>
-        ) : error ? (
-          <p className="text-red-400">{error}</p>
-        ) : suggestion ? (
-          <div className="flex flex-col h-full justify-between">
-            <p className="flex-grow whitespace-pre-wrap">{suggestion}</p>
-            {isDealContext && (
-                <div className="mt-4 flex items-center justify-end space-x-2 border-t border-primary/20 pt-3">
-                <button
-                    onClick={handleTryAgain}
-                    disabled={isActionInProgress}
-                    className="px-3 py-2 text-xs font-semibold rounded-md transition-colors bg-primary/20 text-foreground/80 hover:bg-primary/40 disabled:opacity-50 flex items-center"
-                    aria-label="Get another suggestion"
-                    title="Ask Goose for another suggestion"
-                >
-                    <RefreshIcon className="w-4 h-4 mr-1.5"/>
-                    Try Again
-                </button>
-                <button
-                    onClick={handleAcceptSuggestion}
-                    disabled={isActionInProgress || !isActionable}
-                    className="px-3 py-2 text-xs font-semibold rounded-md transition-colors bg-secondary text-white hover:opacity-90 disabled:bg-secondary/50 disabled:cursor-not-allowed flex items-center"
-                    title={acceptButtonTitle}
-                >
-                    {isActionInProgress ? (
-                        <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Working...
-                        </>
-                    ) : (
-                        <>
-                        {actionType === 'CREATE_TASK' ? <TaskIcon className="w-4 h-4 mr-1.5" /> : <SendIcon className="w-4 h-4 mr-1.5"/>}
-                        {acceptButtonText}
-                        </>
-                    )}
-                </button>
-                </div>
-            )}
-          </div>
-        ) : (
-          <p>{initialMessage}</p>
-        )}
-      </div>
 
-      <form onSubmit={handleSubmit} className="mt-4 flex items-center space-x-2">
-        <input 
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="flex-grow bg-background text-foreground placeholder-foreground/50 p-2 rounded-md border border-primary/50 focus:ring-2 focus:ring-secondary focus:outline-none disabled:opacity-50"
-            placeholder={placeholderText}
-            disabled={isLoading}
-        />
-        <button
-            type="submit"
-            disabled={isLoading}
-            className="bg-secondary hover:opacity-90 disabled:bg-secondary/50 text-white font-bold py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center"
-            aria-label="Get suggestion"
-            title="Send your message to Goose"
-        >
-            <SendIcon className="w-5 h-5"/>
-        </button>
-      </form>
-    </>
-  );
+            <form onSubmit={handleSubmit} className="mt-4 flex items-center space-x-2">
+                <input 
+                    type="text"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    className="flex-grow bg-background text-foreground placeholder-foreground/50 p-2 rounded-md border border-primary/50 focus:ring-2 focus:ring-secondary focus:outline-none disabled:opacity-50"
+                    placeholder={contextName ? `Ask about this ${contextName}...` : "Ask Goose anything..."}
+                    disabled={isLoadingSummary || isLoadingResponse}
+                />
+                <button
+                    type="submit"
+                    disabled={isLoadingSummary || isLoadingResponse || !prompt}
+                    className="bg-secondary hover:opacity-90 disabled:bg-secondary/50 text-white font-bold py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center"
+                    aria-label="Send message to Goose"
+                >
+                    <SendIcon className="w-5 h-5"/>
+                </button>
+            </form>
+        </div>
+    );
 };

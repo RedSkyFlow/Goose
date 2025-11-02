@@ -1,18 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import type { Deal, Interaction } from '../types';
+import type { Deal, Interaction, Company } from '../types';
 import { InteractionType, Sentiment } from '../types';
 import { Timeline } from './Timeline';
 import { generateProposal } from '../services/geminiService';
 import { ProposalIcon, RefreshIcon, SparklesIcon, FilterIcon, ThumbsUpIcon, ThumbsDownIcon } from './icons';
+import type { Hub } from './MainNavbar';
 
 interface MainContentProps {
   deal: Deal | null;
+  company?: Company | null;
   interactions: Interaction[];
   isLoadingInteractions: boolean;
   onRefresh: () => void;
+  onNavigate?: (hub: Hub, itemId: string) => void;
 }
 
-export const MainContent: React.FC<MainContentProps> = ({ deal, interactions, isLoadingInteractions, onRefresh }) => {
+export const MainContent: React.FC<MainContentProps> = ({ deal, company, interactions, isLoadingInteractions, onRefresh, onNavigate }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedProposalId, setGeneratedProposalId] = useState<string | null>(null);
     const [filters, setFilters] = useState<{ types: Set<InteractionType>, sentiments: Set<Sentiment> }>({
@@ -95,6 +98,13 @@ export const MainContent: React.FC<MainContentProps> = ({ deal, interactions, is
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-3xl font-bold text-foreground">{deal.deal_name}</h2>
+          {company && onNavigate ? (
+              <button onClick={() => onNavigate('Companies', company.company_id)} className="text-left">
+                  <p className="text-secondary hover:underline text-lg">{company.name}</p>
+              </button>
+          ) : company ? (
+              <p className="text-foreground/80 text-lg">{company.name}</p>
+          ) : null}
           <p className="text-foreground/80">
             ${deal.value.toLocaleString()} | {deal.stage}
           </p>

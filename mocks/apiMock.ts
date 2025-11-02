@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal, EmailDraft, ProposalItem, ROIProjection, NewCompany, NewContact, } from '../types';
+import type { Company, Contact, Deal, GeneratedProposalContent, Interaction, InteractionLink, Proposal, EmailDraft, ProposalItem, ROIProjection, NewCompany, NewContact, SupportTicket, NewSupportTicket, ProspectProfile, GeneratedLead } from '../types';
 import type { CoPilotContext } from '../services/geminiService';
-import { DealStage, InteractionType, PaymentStatus, ProposalStatus, Sentiment } from '../types';
+import { DealStage, InteractionType, PaymentStatus, ProposalStatus, Sentiment, SupportTicketStatus } from '../types';
 import { http } from '../services/httpClient';
 
 // This file contains all the logic from the previous `api/` directory
@@ -50,6 +50,9 @@ const MOCK_INTERACTIONS: Interaction[] = [
     { interaction_id: 'int-5', type: InteractionType.CALL_LOG, source_identifier: 'call-1', timestamp: '2023-10-20T16:00:00Z', content_raw: 'Call with Michael. He\'s concerned about the budget and the timeline. He needs the migration completed by Q1 next year. He seems hesitant about the price.', ai_sentiment: Sentiment.NEGATIVE, ai_summary: 'Client is budget-conscious and has a firm deadline of Q1. Price is a potential obstacle.', created_at: '2023-10-20T16:00:00Z' },
     { interaction_id: 'int-6', type: InteractionType.NOTE, source_identifier: 'note-1', timestamp: '2023-10-21T10:00:00Z', content_raw: 'Internal note: Need to prepare a revised offer with a phased approach to make the cost more manageable. Will highlight long-term TCO savings.', created_at: '2023-10-21T10:00:00Z' },
     { interaction_id: 'int-7', type: InteractionType.EMAIL, source_identifier: 'gmail-3', timestamp: '2023-11-10T11:20:00Z', content_raw: `Hi, \n\nWe're looking for a new Point-of-Sale system for our 15 retail locations. Can you send over some information? \n\nThanks, \nDavid`, ai_sentiment: Sentiment.NEUTRAL, created_at: '2023-11-10T11:20:00Z' },
+    { interaction_id: 'int-8', type: InteractionType.EMAIL, source_identifier: 'gmail-4', timestamp: '2023-11-12T15:00:00Z', content_raw: `Subject: Help with WiFi\n\nHi support,\n\nOur conference room WiFi has been dropping out all day. Can someone look into this?\n\nThanks,\nJohn Doe`, ai_sentiment: Sentiment.NEGATIVE, created_at: '2023-11-12T15:00:00Z' },
+    { interaction_id: 'int-9', type: InteractionType.EMAIL, source_identifier: 'gmail-5', timestamp: '2023-11-12T15:15:00Z', content_raw: `Subject: RE: Help with WiFi\n\nHi John,\n\nI've received your request and I'm looking into the network logs now. I'll get back to you shortly.\n\nBest,\nSupport Agent`, ai_sentiment: Sentiment.NEUTRAL, created_at: '2023-11-12T15:15:00Z' },
+    { interaction_id: 'int-10', type: InteractionType.EMAIL, source_identifier: 'gmail-6', timestamp: '2023-11-13T09:00:00Z', content_raw: `Subject: Billing Question\n\nHello,\n\nI have a question about our last invoice. Can someone give me a call?\n\nEmily White`, ai_sentiment: Sentiment.NEUTRAL, created_at: '2023-11-13T09:00:00Z' },
 ];
 
 const MOCK_INTERACTION_LINKS: InteractionLink[] = [
@@ -60,9 +63,19 @@ const MOCK_INTERACTION_LINKS: InteractionLink[] = [
     { interaction_id: 'int-5', deal_id: 'deal-2', company_id: 'comp-2', contact_id: 'cont-5' },
     { interaction_id: 'int-6', deal_id: 'deal-2', company_id: 'comp-2', contact_id: 'cont-5' },
     { interaction_id: 'int-7', deal_id: 'deal-3', company_id: 'comp-3', contact_id: 'cont-3' },
+    { interaction_id: 'int-8', company_id: 'comp-1', contact_id: 'cont-1' },
+    { interaction_id: 'int-9', company_id: 'comp-1', contact_id: 'cont-1' },
+    { interaction_id: 'int-10', company_id: 'comp-2', contact_id: 'cont-5' },
 ];
 
 const MOCK_PROPOSALS: Proposal[] = [];
+
+const MOCK_TICKETS: SupportTicket[] = [
+    { ticket_id: 'ticket-1', contact_id: 'cont-1', status: SupportTicketStatus.PENDING, subject: 'Help with WiFi', interaction_ids: ['int-8', 'int-9'], created_at: '2023-11-12T15:00:00Z', updated_at: '2023-11-12T15:15:00Z' },
+    { ticket_id: 'ticket-2', contact_id: 'cont-5', status: SupportTicketStatus.OPEN, subject: 'Billing Question', interaction_ids: ['int-10'], created_at: '2023-11-13T09:00:00Z', updated_at: '2023-11-13T09:00:00Z' },
+    { ticket_id: 'ticket-3', contact_id: 'cont-3', status: SupportTicketStatus.CLOSED, subject: 'POS System Glitch', interaction_ids: [], created_at: '2023-11-11T10:00:00Z', updated_at: '2023-11-11T12:00:00Z' },
+];
+
 
 // --- Mock Data Access Logic ---
 
@@ -151,6 +164,40 @@ const createNewContact = (contactData: NewContact): Contact => {
     return newContact;
 }
 
+const createNewTicket = (ticketData: NewSupportTicket): SupportTicket => {
+    const newInteractionId = `int-${Date.now()}`;
+    const newInteraction: Interaction = {
+        interaction_id: newInteractionId,
+        type: InteractionType.EMAIL,
+        source_identifier: 'internal-ticket',
+        timestamp: new Date().toISOString(),
+        content_raw: `Subject: ${ticketData.subject}\n\n${ticketData.initial_message}`,
+        ai_sentiment: Sentiment.NEUTRAL,
+        created_at: new Date().toISOString(),
+    };
+    MOCK_INTERACTIONS.unshift(newInteraction);
+
+    const contact = MOCK_CONTACTS.find(c => c.contact_id === ticketData.contact_id)!;
+    MOCK_INTERACTION_LINKS.push({
+        interaction_id: newInteractionId,
+        company_id: contact.company_id,
+        contact_id: ticketData.contact_id,
+    });
+    
+    const newTicket: SupportTicket = {
+        ticket_id: `ticket-${Date.now()}`,
+        contact_id: ticketData.contact_id,
+        status: SupportTicketStatus.OPEN,
+        subject: ticketData.subject,
+        interaction_ids: [newInteractionId],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
+    MOCK_TICKETS.unshift(newTicket);
+    return newTicket;
+};
+
+
 // --- AI Handlers ---
 
 const handleSummarize = async (text: string): Promise<string> => {
@@ -168,14 +215,24 @@ const handleGetNextBestAction = async (deal: Deal, interactions: Interaction[]):
 const handleCoPilotResponse = async (prompt: string, context: CoPilotContext): Promise<string> => {
     let contextString = '';
     let systemInstruction = 'You are "Goose", a helpful AI assistant for a business operating system.';
+    let userQuestion = prompt;
 
-    const { deal, company, contact, interactions } = context;
+    const { deal, company, contact, ticket, prospect, interactions } = context;
 
-    if (deal) {
+    if (prompt.startsWith('GENERATE_SUMMARY:')) {
+        const type = prompt.split(':')[1];
+        userQuestion = `Please provide a concise, insightful summary of the current status of this ${type.toLowerCase()}. Focus on the most important information a user would need to know at a glance.`
+    }
+
+    if (prospect) {
+        systemInstruction = `You are an expert marketing and sales co-pilot named Goose. You are assisting with a prospect that has been researched.
+Based on the provided prospect profile, answer the user's question. Focus on creating outreach strategies or content ideas.`;
+        contextString = `Prospect: ${prospect.company_name}\nSummary: ${prospect.summary}\nKey Contacts: ${prospect.key_contacts.map(c => `${c.name} (${c.role})`).join(', ')}\nTalking Points: ${prospect.talking_points.join(', ')}`;
+    } else if (deal) {
         systemInstruction = `You are an expert sales co-pilot named Goose. You are assisting a sales representative with a specific deal.
 Based on the provided deal information, interaction history, and the user's question, provide a helpful and concise response.
 Analyze the context and the user's query to give an insightful answer. Do not just repeat the information given.
-If the user asks for an action that you can help with (like drafting an email, scheduling a call, creating a task), start your response with a clear action phrase like "Send email:", "Schedule call:", or "Create task:".`;
+If the user asks for an action that you can help with (like drafting an email), be ready to provide actionable suggestions.`;
         contextString = `Deal: ${deal.deal_name}\nValue: $${deal.value.toLocaleString()}\nCurrent Stage: ${deal.stage}\n\nInteraction History:\n${interactions?.slice(0, 5).map(i => `[${new Date(i.timestamp).toLocaleDateString()} - ${i.type}]: ${i.ai_summary || i.content_raw.substring(0, 100)}...`).join('\n')}`;
     } else if (company) {
          systemInstruction = `You are an expert business analyst named Goose, providing insights about a specific company.
@@ -188,6 +245,13 @@ Based on the company data and recent interactions, answer the user's question. P
 Based on the contact's data and interaction history, answer the user's question. Focus on their role, sentiment, and key topics of discussion.`;
         const parentCompany = MOCK_COMPANIES.find(c => c.company_id === contact.company_id);
         contextString = `Contact: ${contact.first_name} ${contact.last_name}\nRole: ${contact.role}\nCompany: ${parentCompany?.name}\n\nRecent Interactions:\n${interactions?.slice(0, 5).map(i => `[${new Date(i.timestamp).toLocaleDateString()} - ${i.type}]: ${i.ai_summary || i.content_raw.substring(0, 100)}...`).join('\n')}`;
+    } else if (ticket) {
+        systemInstruction = `You are an expert customer support co-pilot named Goose. You are assisting a support agent with a specific ticket.
+Based on the provided ticket information and interaction history, provide a helpful and concise response.
+Analyze the context and the user's query to give an insightful answer. You can summarize the thread, draft a reply, or suggest knowledge base articles.`;
+        
+        const ticketContact = MOCK_CONTACTS.find(c => c.contact_id === ticket.contact_id);
+        contextString = `Ticket Subject: "${ticket.subject}"\nStatus: ${ticket.status}\nCustomer: ${ticketContact?.first_name} ${ticketContact?.last_name}\n\nInteraction History:\n${interactions?.slice(0, 5).map(i => `[${new Date(i.timestamp).toLocaleDateString()} - ${i.author?.name}]: ${i.content_raw.substring(0, 100)}...`).join('\n')}`;
     }
     else {
         systemInstruction = `You are "Goose", a helpful AI assistant for a business operating system. You can answer questions about how to use the application, or you can search for information across all business data.
@@ -201,7 +265,7 @@ Based on the contact's data and interaction history, answer the user's question.
         contextString = `User is asking a question in a global context, not specific to any single deal.`;
     }
 
-    const fullPrompt = `${contextString}\n\nUser Question: ${prompt}`;
+    const fullPrompt = `${contextString}\n\nUser Question: ${userQuestion}`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-pro',
@@ -370,6 +434,77 @@ const handleDraftEmail = async (suggestion: string, deal: Deal, interactions: In
     };
 }
 
+const handleResearchProspect = async (domain: string): Promise<ProspectProfile> => {
+    // In a real app, this would use various APIs (Clearbit, Hunter, NewsAPI) and web scraping.
+    // For this mock, we'll generate a plausible, rich object.
+    const companyName = domain.split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    return {
+        domain,
+        company_name: `${companyName} Solutions`,
+        summary: `An innovative company in the ${companyName} sector, focused on delivering cutting-edge solutions. They appear to be in a growth phase, actively hiring for technical roles.`,
+        industry: "Technology",
+        talking_points: [
+            "Recent product launch in Q3.",
+            "Mentioned in TechCrunch for their Series A funding.",
+            "Known for a strong company culture."
+        ],
+        tech_stack: [
+            { name: "React", category: "Other", description: "Frontend framework for building user interfaces." },
+            { name: "Google Analytics", category: "Analytics", description: "Web analytics service to track and report website traffic." },
+            { name: "HubSpot", category: "Marketing Automation", description: "Platform for inbound marketing, sales, and service." },
+        ],
+        key_contacts: [
+            { name: "Jane Smith", role: "CEO", linkedin_url: "https://linkedin.com/in/janesmith", ai_outreach_suggestion: "Reference their recent funding round and focus on long-term scalability." },
+            { name: "Robert Johnson", role: "VP of Engineering", linkedin_url: "https://linkedin.com/in/robertjohnson", ai_outreach_suggestion: "Focus on technical excellence and developer productivity." },
+        ],
+        recent_news: [
+            { title: `${companyName} Solutions Raises $15M Series A`, url: "#", published_date: "2024-05-20", summary: "The funding will be used to expand their engineering team and accelerate product development." },
+            { title: `The ${companyName} Tech Stack That Powers Innovation`, url: "#", published_date: "2024-04-10", summary: "A deep dive into the technologies that give them a competitive edge in the market." },
+        ]
+    };
+};
+
+const handleGenerateMarketingContent = async (prompt: string): Promise<string> => {
+    const systemInstruction = `You are "Goose", an expert marketing content creator. Your tone is engaging, professional, and slightly informal. You specialize in creating content for B2B technology companies. When asked to generate content, provide a well-structured response using Markdown for formatting (e.g., use headings, bold text, and bullet points).`;
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: prompt,
+        config: { systemInstruction },
+    });
+    
+    return response.text;
+};
+
+const handleGenerateLeadList = async (description: string): Promise<GeneratedLead[]> => {
+    const prompt = `You are an expert lead generation specialist. Based on the following description of an ideal customer, generate a list of 5 real or plausible companies that fit the profile. Your response MUST be a valid JSON array of objects, with no other text or explanation.
+
+    Description: "${description}"`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        company_name: { type: Type.STRING, description: 'The name of the company.' },
+                        domain: { type: Type.STRING, description: 'The web domain of the company (e.g., example.com).' },
+                    },
+                    required: ["company_name", "domain"],
+                },
+            },
+        },
+    });
+
+    return JSON.parse(response.text);
+};
+
+
 // --- 2. MOCK FETCH IMPLEMENTATION ---
 
 const API_LATENCY = 500; // ms
@@ -417,6 +552,16 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
         const contactId = searchParams.get('contact_id');
         const data = getInteractions({ dealId: dealId || undefined, companyId: companyId || undefined, contactId: contactId || undefined });
         return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
+    }
+    
+    // --- Support Endpoints ---
+    if (pathname === '/api/tickets' && method === 'GET') {
+        return new Response(JSON.stringify(MOCK_TICKETS), { headers: { 'Content-Type': 'application/json' } });
+    }
+    if (pathname === '/api/tickets' && method === 'POST') {
+        const ticketData = JSON.parse(init.body as string) as NewSupportTicket;
+        const newTicket = createNewTicket(ticketData);
+        return new Response(JSON.stringify(newTicket), { status: 201, headers: { 'Content-Type': 'application/json' } });
     }
     
     // Match proposal ID from path
@@ -479,6 +624,25 @@ const mockFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
         const emailDraft = await handleDraftEmail(suggestion, deal, interactions);
         return new Response(JSON.stringify(emailDraft), { headers: { 'Content-Type': 'application/json' } });
     }
+
+    // --- Marketing Endpoints ---
+    if (pathname === '/api/research-prospect' && method === 'GET') {
+        const domain = searchParams.get('domain');
+        if (!domain) return new Response('Domain parameter is required', { status: 400 });
+        const data = await handleResearchProspect(domain);
+        return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
+    }
+    if (pathname === '/api/generate-marketing-content' && method === 'POST') {
+        const { prompt } = JSON.parse(init.body as string);
+        const content = await handleGenerateMarketingContent(prompt);
+        return new Response(JSON.stringify({ content }), { headers: { 'Content-Type': 'application/json' } });
+    }
+     if (pathname === '/api/generate-lead-list' && method === 'POST') {
+        const { description } = JSON.parse(init.body as string);
+        const leads = await handleGenerateLeadList(description);
+        return new Response(JSON.stringify(leads), { headers: { 'Content-Type': 'application/json' } });
+    }
+
 
     console.warn(`No mock handler for ${pathname}. Falling back to original fetch.`);
     return originalFetch(input, init);

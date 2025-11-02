@@ -1,4 +1,4 @@
-import type { Deal, Interaction, Proposal, Company, Contact, NewCompany, NewContact } from '../types';
+import type { Deal, Interaction, Proposal, Company, Contact, NewCompany, NewContact, SupportTicket, NewSupportTicket, ProspectProfile, GeneratedLead } from '../types';
 import { http } from './httpClient';
 
 // This service acts as the interface between the frontend components
@@ -76,6 +76,48 @@ export const acceptProposal = async (proposalId: string, signature: string, fina
 export const processProposalPayment = async (proposalId: string): Promise<Proposal> => {
     const response = await http.fetch(`/api/proposals/${proposalId}/pay`, {
         method: 'POST',
+    });
+    return response.json();
+};
+
+// --- Support Functions ---
+
+export const fetchSupportTickets = async (): Promise<SupportTicket[]> => {
+    const response = await http.fetch('/api/tickets');
+    return response.json();
+};
+
+export const createSupportTicket = async (ticket: NewSupportTicket): Promise<SupportTicket> => {
+    const response = await http.fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ticket),
+    });
+    return response.json();
+};
+
+// --- Marketing Functions ---
+
+export const researchProspect = async (domain: string): Promise<ProspectProfile> => {
+    const response = await http.fetch(`/api/research-prospect?domain=${domain}`);
+    return response.json();
+};
+
+export const generateMarketingContent = async (prompt: string): Promise<string> => {
+    const response = await http.fetch('/api/generate-marketing-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+    });
+    const data = await response.json();
+    return data.content;
+};
+
+export const generateLeadList = async (description: string): Promise<GeneratedLead[]> => {
+    const response = await http.fetch('/api/generate-lead-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description }),
     });
     return response.json();
 };

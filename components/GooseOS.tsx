@@ -4,30 +4,53 @@ import { FloatingGooseButton } from './FloatingGooseButton';
 import { GooseChatModal } from './GooseChatModal';
 import { MainNavbar, Hub } from './MainNavbar';
 import { DealsHub } from './DealsHub';
-import { PlaceholderHub } from './PlaceholderHub';
 import { CompaniesHub } from './companies/CompaniesHub';
 import { ContactsHub } from './contacts/ContactsHub';
+import { SupportHub } from './support/SupportHub';
+import { MarketingHub } from './marketing/MarketingHub';
 import { useNotification } from '../contexts/NotificationContext';
+
+export interface NavigationTarget {
+  hub: Hub;
+  itemId: string;
+}
 
 export const GooseOS: React.FC = () => {
   const [activeHub, setActiveHub] = useState<Hub>('Deals');
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [navigationTarget, setNavigationTarget] = useState<NavigationTarget | null>(null);
   const { toast, closeToast } = useNotification();
 
+  const handleNavigate = (hub: Hub, itemId: string) => {
+    setActiveHub(hub);
+    setNavigationTarget({ hub, itemId });
+  };
+  
+  useEffect(() => {
+    // Clear the navigation target after it's been sent to the hub component
+    // This prevents re-triggering navigation on subsequent renders
+    if (navigationTarget) {
+      const timer = setTimeout(() => setNavigationTarget(null), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [navigationTarget]);
+
+
   const renderHub = () => {
+    const props = { navigationTarget, onNavigate: handleNavigate };
     switch(activeHub) {
       case 'Deals':
-        return <DealsHub />;
+        return <DealsHub {...props} />;
       case 'Companies':
-        return <CompaniesHub />;
+        return <CompaniesHub {...props} />;
       case 'Contacts':
-        return <ContactsHub />;
+        return <ContactsHub {...props} />;
       case 'Support':
-        return <PlaceholderHub title="Support Hub" />;
+        return <SupportHub {...props} />;
       case 'Marketing':
-        return <PlaceholderHub title="Marketing Hub" />;
+        return <MarketingHub />;
       default:
-        return <DealsHub />;
+        return <DealsHub {...props} />;
     }
   }
 
@@ -39,7 +62,13 @@ export const GooseOS: React.FC = () => {
         onClose={closeToast}
         key={toast?.id}
       />
-      <MainNavbar activeHub={activeHub} onHubChange={setActiveHub} />
+      <MainNavbar 
+        activeHub={activeHub} 
+        onHubChange={(hub) => {
+          setActiveHub(hub);
+          setNavigationTarget(null);
+        }} 
+      />
       
       <div className="flex flex-1 overflow-hidden">
         {renderHub()}
