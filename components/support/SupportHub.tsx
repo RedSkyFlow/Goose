@@ -37,8 +37,8 @@ export const SupportHub: React.FC<SupportHubProps> = ({ navigationTarget, onNavi
     const [isModalOpen, setIsModalOpen] = useState(false);
     
     const [searchTerm, setSearchTerm] = useState('');
-    // FIX: Changed state type to `SupportTicketStatus | 'All'` for better type safety with this component's filtering logic.
-    const [activeFilter, setActiveFilter] = useState<SupportTicketStatus | 'All'>('All');
+    // FIX: Reverted state to `string | 'All'` to match the onFilterChange prop of MasterListSidebar, resolving a complex type error.
+    const [activeFilter, setActiveFilter] = useState<string | 'All'>('All');
 
     const { showToast } = useNotification();
 
@@ -214,8 +214,8 @@ export const SupportHub: React.FC<SupportHubProps> = ({ navigationTarget, onNavi
                 searchPlaceholder="Search tickets by subject..."
                 filterOptions={ticketFilterOptions}
                 activeFilter={activeFilter}
-                // FIX: Pass a new function to onFilterChange to ensure type compatibility and remove the unnecessary type cast.
-                onFilterChange={(filter) => setActiveFilter(filter as SupportTicketStatus | 'All')}
+                // FIX: Pass the state setter directly now that the state type (`string | 'All'`) matches the prop's expected type.
+                onFilterChange={setActiveFilter}
             />
             <MainContent />
             <RightSidebar item={selectedTicket} interactions={interactions} />

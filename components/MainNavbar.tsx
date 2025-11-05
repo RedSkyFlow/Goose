@@ -19,9 +19,7 @@ const hubs: { id: Hub, name: string, icon: React.ReactNode }[] = [
 export const MainNavbar: React.FC<MainNavbarProps> = ({ activeHub, onHubChange }) => {
     return (
         <nav className="bg-background-light p-3 flex flex-col items-center border-r border-primary/50 z-20">
-            <div className="bg-secondary rounded-full h-10 w-10 flex items-center justify-center font-bold text-background text-xl mb-8">
-                G
-            </div>
+            <img src="/Goose_logo.png" alt="Goose OS Logo" className="h-10 w-10 mb-8" />
 
             <ul className="flex flex-col items-center space-y-4">
                 {hubs.map(hub => (

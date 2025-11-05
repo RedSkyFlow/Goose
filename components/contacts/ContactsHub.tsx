@@ -9,7 +9,7 @@ import { MasterListSidebar } from '../MasterListSidebar';
 import { RightSidebar } from '../RightSidebar';
 import type { NavigationTarget } from '../GooseOS';
 import type { Hub } from '../MainNavbar';
-// FIX: Import ItemStatus to use as a more specific type for the filter state.
+// FIX: The ItemStatus type is still useful for defining filter options, but the state itself will be a string to avoid type conflicts.
 import { ItemStatus } from '../../types';
 
 interface ContactsHubProps {
@@ -28,8 +28,8 @@ export const ContactsHub: React.FC<ContactsHubProps> = ({ navigationTarget, onNa
     const [isModalOpen, setIsModalOpen] = useState(false);
     
     const [searchTerm, setSearchTerm] = useState('');
-    // FIX: Changed state type from `string` to the more specific `ItemStatus` union for better type safety.
-    const [activeFilter, setActiveFilter] = useState<ItemStatus | 'All'>('All');
+    // FIX: Reverted state to `string | 'All'` to match the onFilterChange prop of MasterListSidebar, resolving a complex type error.
+    const [activeFilter, setActiveFilter] = useState<string | 'All'>('All');
 
     const { showToast } = useNotification();
 
@@ -202,8 +202,8 @@ export const ContactsHub: React.FC<ContactsHubProps> = ({ navigationTarget, onNa
                 searchPlaceholder="Search contacts..."
                 filterOptions={contactFilterOptions}
                 activeFilter={activeFilter}
-                // FIX: Pass a new function to onFilterChange to ensure type compatibility between the prop and the state dispatcher.
-                onFilterChange={(filter) => setActiveFilter(filter as ItemStatus | 'All')}
+                // FIX: Pass the state setter directly now that the state type (`string | 'All'`) matches the prop's expected type.
+                onFilterChange={setActiveFilter}
             />
             <MainContent />
             <RightSidebar item={selectedContact} interactions={interactions} />

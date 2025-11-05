@@ -94,9 +94,7 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({ proposalId }) =>
         {/* Header */}
         <header className="p-8 bg-background/50 border-b border-primary/50 text-center">
             <div className="flex items-center justify-center mb-4">
-                 <div className="bg-secondary rounded-full h-12 w-12 flex items-center justify-center font-bold text-background text-2xl mr-4">
-                    G
-                </div>
+                 <img src="/Goose_logo.png" alt="Goose OS Logo" className="h-12 w-12 mr-4" />
                 <div>
                     <h1 className="text-3xl font-bold text-foreground">{content.proposalTitle}</h1>
                     <p className="text-foreground/70">Prepared for: {content.clientName}</p>
