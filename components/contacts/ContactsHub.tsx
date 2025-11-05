@@ -9,7 +9,6 @@ import { MasterListSidebar } from '../MasterListSidebar';
 import { RightSidebar } from '../RightSidebar';
 import type { NavigationTarget } from '../GooseOS';
 import type { Hub } from '../MainNavbar';
-// FIX: The ItemStatus type is still useful for defining filter options, but the state itself will be a string to avoid type conflicts.
 import { ItemStatus } from '../../types';
 
 interface ContactsHubProps {
@@ -28,7 +27,6 @@ export const ContactsHub: React.FC<ContactsHubProps> = ({ navigationTarget, onNa
     const [isModalOpen, setIsModalOpen] = useState(false);
     
     const [searchTerm, setSearchTerm] = useState('');
-    // FIX: Reverted state to `string | 'All'` to match the onFilterChange prop of MasterListSidebar, resolving a complex type error.
     const [activeFilter, setActiveFilter] = useState<string | 'All'>('All');
 
     const { showToast } = useNotification();
@@ -108,8 +106,6 @@ export const ContactsHub: React.FC<ContactsHubProps> = ({ navigationTarget, onNa
             .filter(contact => {
                 const lowercasedTerm = searchTerm.toLowerCase();
                 const fullName = `${contact.first_name} ${contact.last_name}`;
-                // FIX: Assuming a faulty generic search caused the error, replaced with direct property access.
-                // Also removed redundant check on `contact.email` as it's a required property.
                 return fullName.toLowerCase().includes(lowercasedTerm) || 
                        contact.email.toLowerCase().includes(lowercasedTerm);
             });
@@ -120,6 +116,10 @@ export const ContactsHub: React.FC<ContactsHubProps> = ({ navigationTarget, onNa
             setSelectedContact(filteredContacts.length > 0 ? filteredContacts[0] : null);
         }
     }, [filteredContacts, selectedContact]);
+
+    const handleFilterChange = useCallback((filter: string | 'All') => {
+        setActiveFilter(filter);
+    }, []);
 
 
     const renderListItem = (contact: Contact, isSelected: boolean) => (
@@ -188,7 +188,7 @@ export const ContactsHub: React.FC<ContactsHubProps> = ({ navigationTarget, onNa
                 onContactCreated={handleContactCreated}
                 companies={companies}
             />
-            <MasterListSidebar
+            <MasterListSidebar<Contact>
                 title="Contacts"
                 items={filteredContacts}
                 selectedItem={selectedContact}
@@ -202,8 +202,8 @@ export const ContactsHub: React.FC<ContactsHubProps> = ({ navigationTarget, onNa
                 searchPlaceholder="Search contacts..."
                 filterOptions={contactFilterOptions}
                 activeFilter={activeFilter}
-                // FIX: Pass the state setter directly now that the state type (`string | 'All'`) matches the prop's expected type.
-                onFilterChange={setActiveFilter}
+                // FIX: Explicitly specifying the generic type for MasterListSidebar resolves the type inference error on this prop.
+                onFilterChange={handleFilterChange}
             />
             <MainContent />
             <RightSidebar item={selectedContact} interactions={interactions} />

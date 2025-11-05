@@ -9,7 +9,7 @@ export const LoginScreen: React.FC = () => {
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="text-center p-8 bg-background-light rounded-lg shadow-2xl border border-primary/50">
         <div className="flex items-center justify-center mb-6">
-            <img src="/Goose_logo.png" alt="Goose OS Logo" className="h-12 w-12 mr-4" />
+            <div role="img" aria-label="Goose OS Logo" className="goose-logo h-12 w-12 mr-4" />
             <h1 className="text-3xl font-bold text-foreground">Project Goose</h1>
         </div>
         <p className="text-foreground/80 mb-8">Your AI-Powered Business Co-Pilot</p>

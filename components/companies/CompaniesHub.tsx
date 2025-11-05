@@ -9,7 +9,6 @@ import { MasterListSidebar } from '../MasterListSidebar';
 import { RightSidebar } from '../RightSidebar';
 import type { NavigationTarget } from '../GooseOS';
 import type { Hub } from '../MainNavbar';
-// FIX: The ItemStatus type is still useful for defining filter options, but the state itself will be a string to avoid type conflicts.
 import { ItemStatus } from '../../types';
 
 interface CompaniesHubProps {
@@ -27,7 +26,6 @@ export const CompaniesHub: React.FC<CompaniesHubProps> = ({ navigationTarget, on
     const [isModalOpen, setIsModalOpen] = useState(false);
     
     const [searchTerm, setSearchTerm] = useState('');
-    // FIX: Reverted state to `string | 'All'` to match the onFilterChange prop of MasterListSidebar, resolving a complex type error.
     const [activeFilter, setActiveFilter] = useState<string | 'All'>('All');
 
     const { showToast } = useNotification();
@@ -107,8 +105,6 @@ export const CompaniesHub: React.FC<CompaniesHubProps> = ({ navigationTarget, on
             })
             .filter(company => {
                 const lowercasedTerm = searchTerm.toLowerCase();
-                // FIX: The generic implementation for searching caused a TypeScript type error.
-                // Replaced with direct property access for type safety and clarity.
                 return company.name.toLowerCase().includes(lowercasedTerm) ||
                        company.industry.toLowerCase().includes(lowercasedTerm);
             });
@@ -119,6 +115,10 @@ export const CompaniesHub: React.FC<CompaniesHubProps> = ({ navigationTarget, on
             setSelectedCompany(filteredCompanies.length > 0 ? filteredCompanies[0] : null);
         }
     }, [filteredCompanies, selectedCompany]);
+
+    const handleFilterChange = useCallback((filter: string | 'All') => {
+        setActiveFilter(filter);
+    }, []);
 
 
     const renderListItem = (company: Company, isSelected: boolean) => (
@@ -203,7 +203,7 @@ export const CompaniesHub: React.FC<CompaniesHubProps> = ({ navigationTarget, on
                 onClose={() => setIsModalOpen(false)}
                 onCompanyCreated={handleCompanyCreated}
             />
-            <MasterListSidebar
+            <MasterListSidebar<Company>
                 title="Companies"
                 items={filteredCompanies}
                 selectedItem={selectedCompany}
@@ -217,8 +217,8 @@ export const CompaniesHub: React.FC<CompaniesHubProps> = ({ navigationTarget, on
                 searchPlaceholder="Search companies..."
                 filterOptions={companyFilterOptions}
                 activeFilter={activeFilter}
-                // FIX: Pass the state setter directly now that the state type (`string | 'All'`) matches the prop's expected type.
-                onFilterChange={setActiveFilter}
+                // FIX: Explicitly specifying the generic type for MasterListSidebar resolves the type inference error on this prop.
+                onFilterChange={handleFilterChange}
             />
             <MainContent />
             <RightSidebar item={selectedCompany} interactions={relatedData.interactions} />

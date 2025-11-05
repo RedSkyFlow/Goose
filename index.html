@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/Goose_logo.png" />
+    <link rel="icon" type="image/svg+xml" href="/images/goose_logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Project Goose: AI Business Co-Pilot</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,6 +13,11 @@
         --accent: 39 100% 63%; /* #FFC145 */
         --background: 228 35% 17%; /* #1c203c */
         --foreground: 270 17% 95%; /* #F5F0F6 */
+      }
+      .goose-logo {
+        background-color: currentColor;
+        -webkit-mask: url('/images/goose_logo.svg') no-repeat center / contain;
+        mask: url('/images/goose_logo.svg') no-repeat center / contain;
       }
     </style>
     <script>

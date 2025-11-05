@@ -37,7 +37,6 @@ export const SupportHub: React.FC<SupportHubProps> = ({ navigationTarget, onNavi
     const [isModalOpen, setIsModalOpen] = useState(false);
     
     const [searchTerm, setSearchTerm] = useState('');
-    // FIX: Reverted state to `string | 'All'` to match the onFilterChange prop of MasterListSidebar, resolving a complex type error.
     const [activeFilter, setActiveFilter] = useState<string | 'All'>('All');
 
     const { showToast } = useNotification();
@@ -124,7 +123,6 @@ export const SupportHub: React.FC<SupportHubProps> = ({ navigationTarget, onNavi
                 return ticket.status === activeFilter;
             })
             .filter(ticket => {
-                // FIX: Assuming a faulty generic search caused the error, replaced with direct property access.
                 return ticket.subject.toLowerCase().includes(searchTerm.toLowerCase());
             });
     }, [tickets, searchTerm, activeFilter]);
@@ -134,6 +132,10 @@ export const SupportHub: React.FC<SupportHubProps> = ({ navigationTarget, onNavi
             setSelectedTicket(filteredTickets.length > 0 ? filteredTickets[0] : null);
         }
     }, [filteredTickets, selectedTicket]);
+
+    const handleFilterChange = useCallback((filter: string | 'All') => {
+        setActiveFilter(filter);
+    }, []);
 
 
     const renderListItem = (ticket: SupportTicket, isSelected: boolean) => {
@@ -200,7 +202,7 @@ export const SupportHub: React.FC<SupportHubProps> = ({ navigationTarget, onNavi
                 onTicketCreated={handleTicketCreated}
                 contacts={contacts}
             />
-            <MasterListSidebar
+            <MasterListSidebar<SupportTicket>
                 title="Support Tickets"
                 items={filteredTickets}
                 selectedItem={selectedTicket}
@@ -214,8 +216,8 @@ export const SupportHub: React.FC<SupportHubProps> = ({ navigationTarget, onNavi
                 searchPlaceholder="Search tickets by subject..."
                 filterOptions={ticketFilterOptions}
                 activeFilter={activeFilter}
-                // FIX: Pass the state setter directly now that the state type (`string | 'All'`) matches the prop's expected type.
-                onFilterChange={setActiveFilter}
+                // FIX: Explicitly specifying the generic type for MasterListSidebar resolves the type inference error on this prop.
+                onFilterChange={handleFilterChange}
             />
             <MainContent />
             <RightSidebar item={selectedTicket} interactions={interactions} />
