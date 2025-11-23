@@ -1,13 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { startApiMock } from './mocks/apiMock';
+// import { startApiMock } from './mocks/apiMock';
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 
-// Start the mock API to intercept fetch calls in this development environment.
-// In production, this line would be removed.
-startApiMock();
+// Mock API disabled for production connection
+// startApiMock();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
