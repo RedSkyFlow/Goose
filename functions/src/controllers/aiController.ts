@@ -1,12 +1,11 @@
-import { Request, Response } from 'express';
+
 import { GoogleGenAI, Type } from "@google/genai";
-import * as dotenv from 'dotenv';
+import { config } from '../config';
 
-dotenv.config();
+// Use GEMINI_API_KEY from config
+const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
-export const summarize = async (req: Request, res: Response) => {
+export const summarize = async (req: any, res: any) => {
     try {
         const { text } = req.body;
         const response = await ai.models.generateContent({
@@ -20,10 +19,42 @@ export const summarize = async (req: Request, res: Response) => {
     }
 };
 
-export const generateProposal = async (req: Request, res: Response) => {
-    try {
+export const nextBestAction = async (req: any, res: any) => {
+     try {
         const { deal, interactions } = req.body;
-        // Deal and Interactions come from frontend state for now
+        const prompt = `Suggest the next best sales action for deal "${deal.deal_name}" based on these interactions.`;
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt
+        });
+        res.json({ action: response.text });
+     } catch (err) {
+         res.status(500).json({ error: 'Failed to get action' });
+     }
+}
+
+export const copilotResponse = async (req: any, res: any) => {
+    try {
+        const { prompt, context } = req.body;
+        const systemInstruction = 'You are "Goose", a helpful AI assistant for a business operating system.';
+        const fullPrompt = `Context: ${JSON.stringify(context)}\n\nUser Question: ${prompt}`;
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: fullPrompt,
+            config: { systemInstruction }
+        });
+        
+        res.json({ response: response.text });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'CoPilot failed' });
+    }
+};
+
+export const generateProposal = async (req: any, res: any) => {
+    try {
+        const { deal } = req.body;
         
         const prompt = `
             You are an expert B2B proposal writer named Goose. 
@@ -31,7 +62,6 @@ export const generateProposal = async (req: Request, res: Response) => {
             Generate a structured JSON proposal.
         `;
         
-        // Simplified schema for brevity, matches frontend expectation
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: prompt,
@@ -78,13 +108,9 @@ export const generateProposal = async (req: Request, res: Response) => {
                 }
             }
         });
-
-        // In a real app, we'd insert into the 'proposals' table here
-        const proposalId = `prop-${Date.now()}`; 
-        // For this transition, we just return the ID and frontend handles the "mock" creation in memory 
-        // or we should save to DB. 
-        // Saving to DB requires creating a proposal record. We'll skip that complexity for this step 
-        // and just return the ID, but strictly speaking, the 'content' isn't persisted yet.
+        
+        // In a real app, save to DB. Here we simulate returning an ID.
+        const proposalId = `prop-${Date.now()}`;
         
         res.json({ proposalId });
     } catch (err) {
@@ -93,28 +119,9 @@ export const generateProposal = async (req: Request, res: Response) => {
     }
 };
 
-export const copilotResponse = async (req: Request, res: Response) => {
+export const draftEmail = async (req: any, res: any) => {
     try {
-        const { prompt, context } = req.body;
-        const systemInstruction = 'You are "Goose", a helpful AI assistant for a business operating system.';
-        const fullPrompt = `Context: ${JSON.stringify(context)}\n\nUser Question: ${prompt}`;
-        
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: fullPrompt,
-            config: { systemInstruction }
-        });
-        
-        res.json({ response: response.text });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'CoPilot failed' });
-    }
-};
-
-export const draftEmail = async (req: Request, res: Response) => {
-    try {
-        const { suggestion, deal, interactions } = req.body;
+        const { suggestion, deal } = req.body;
         const prompt = `Draft a professional email for deal "${deal.deal_name}" regarding "${suggestion}". Return JSON with subject and body.`;
         
         const response = await ai.models.generateContent({
@@ -134,23 +141,8 @@ export const draftEmail = async (req: Request, res: Response) => {
         });
         
         const content = JSON.parse(response.text);
-        // Look up recipient in interactions/contacts usually
         res.json({ ...content, to: 'client@example.com' });
     } catch (err) {
         res.status(500).json({ error: 'Draft email failed' });
     }
 };
-
-export const nextBestAction = async (req: Request, res: Response) => {
-     try {
-        const { deal, interactions } = req.body;
-        const prompt = `Suggest the next best sales action for deal "${deal.deal_name}" based on these interactions.`;
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt
-        });
-        res.json({ action: response.text });
-     } catch (err) {
-         res.status(500).json({ error: 'Failed to get action' });
-     }
-}
