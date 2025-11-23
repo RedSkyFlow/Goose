@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChatIcon, CloseIcon, SendIcon, UserIcon } from '../icons';
+import { ChatIcon, CloseIcon, SendIcon } from '../icons';
 
 interface CollaborationSidebarProps {
     clientName: string;
@@ -22,7 +22,7 @@ export const CollaborationSidebar: React.FC<CollaborationSidebarProps> = ({ clie
             author: 'You',
             text: input,
             time: 'Just now',
-            isUser: true // In a real app this would distinguish self
+            isUser: true 
         }]);
         setInput('');
     };

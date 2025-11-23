@@ -71,7 +71,6 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({ proposalId }) =>
   };
 
   const handleExit = () => {
-      // Simply redirect to home or close tab if possible, standard pattern for microsites
       window.location.href = '/';
   }
 
@@ -157,8 +156,8 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({ proposalId }) =>
                     <p className="whitespace-pre-wrap">{content.termsAndConditions}</p>
                 </div>
 
-                {/* Sign-off Logic - Using existing components, but wrapped nicely */}
-                <div className="bg-[#1c203c] p-8 rounded-xl border border-primary/20 shadow-lg print:bg-white print:border-black">
+                {/* Sign-off Logic */}
+                <div className="bg-[#1c203c] p-8 rounded-xl border border-primary/20 shadow-lg print:bg-white print:border-black print:shadow-none">
                      <SignatureBlock 
                         proposal={proposal} 
                         onProposalUpdate={handleUpdateProposal}
@@ -168,7 +167,7 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({ proposalId }) =>
                 </div>
 
                 {isAccepted && (
-                    <div className="bg-[#1c203c] p-8 rounded-xl border border-primary/20 shadow-lg print:bg-white print:border-black">
+                    <div className="bg-[#1c203c] p-8 rounded-xl border border-primary/20 shadow-lg print:bg-white print:border-black print:shadow-none">
                         <PaymentBlock 
                             proposal={proposal} 
                             deal={deal}

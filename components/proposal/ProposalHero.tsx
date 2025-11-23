@@ -17,8 +17,8 @@ export const ProposalHero: React.FC<ProposalHeroProps> = ({ title, clientName, d
 
     return (
         <section className="relative h-screen w-full flex flex-col justify-between p-12 text-white bg-[#1c203c] overflow-hidden print:h-auto print:min-h-0 print:p-0 print:bg-white print:text-black print:block">
-            {/* Background Image Placeholder with Overlay */}
-            <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80')] bg-cover bg-center print:hidden"></div>
+            {/* Background Image Placeholder with Overlay - using a Hotel/Lobby vibe */}
+            <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80')] bg-cover bg-center print:hidden"></div>
             <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#1c203c] via-[#1c203c]/90 to-transparent print:hidden"></div>
             
             {/* Top Left Logo */}
@@ -40,7 +40,7 @@ export const ProposalHero: React.FC<ProposalHeroProps> = ({ title, clientName, d
             </div>
 
             {/* Bottom CTA */}
-            <div className="relative z-10 flex flex-col items-center mb-8 no-print">
+            <div className="relative z-10 flex flex-col items-center mb-8 print:hidden">
                 <p className="text-sm uppercase tracking-widest mb-2 text-gray-400">Scroll to view solution</p>
                 <button 
                     onClick={scrollToNext}

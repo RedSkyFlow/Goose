@@ -14,21 +14,22 @@ const formatCurrency = (amount: number) => {
 
 export const ProposalTable: React.FC<ProposalTableProps> = ({ items, selectedItemIds, onToggleItem, isLocked }) => {
     
-    // Group items by inferred category based on type or name
+    // Group items by inferred category
     const groupedItems = useMemo(() => {
         const groups: Record<string, ProposalItem[]> = {
-            'Hardware & Implementation': [],
-            'Software & Licensing': [],
-            'Managed Services': []
+            'Core License': [],
+            'Hardware': [],
+            'Services': []
         };
 
         items.forEach(item => {
-            if (item.type === 'recurring') {
-                groups['Managed Services'].push(item);
-            } else if (item.name.toLowerCase().includes('license') || item.name.toLowerCase().includes('software')) {
-                groups['Software & Licensing'].push(item);
+            const nameLower = item.name.toLowerCase();
+            if (nameLower.includes('license') || nameLower.includes('software') || nameLower.includes('cloud')) {
+                groups['Core License'].push(item);
+            } else if (item.type === 'recurring' || nameLower.includes('support') || nameLower.includes('installation')) {
+                groups['Services'].push(item);
             } else {
-                groups['Hardware & Implementation'].push(item);
+                groups['Hardware'].push(item);
             }
         });
 
@@ -93,8 +94,9 @@ export const ProposalTable: React.FC<ProposalTableProps> = ({ items, selectedIte
                                                     <p className="font-mono text-gray-300 print:text-black">{item.quantity}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-xs text-gray-500 uppercase print:text-black">Unit Price</p>
-                                                    <p className="font-mono text-gray-300 print:text-black">{formatCurrency(item.price)}</p>
+                                                    <p className="text-xs text-gray-500 uppercase print:text-black">List Price</p>
+                                                    <p className="font-mono text-gray-400 line-through text-xs print:text-black">{formatCurrency(item.price * 1.2)}</p>
+                                                    <p className="font-mono text-primary print:text-black">{formatCurrency(item.price)}</p>
                                                 </div>
                                                 <div className="text-right min-w-[100px]">
                                                     <p className="text-xs text-gray-500 uppercase print:text-black">Total</p>
@@ -116,11 +118,11 @@ export const ProposalTable: React.FC<ProposalTableProps> = ({ items, selectedIte
                     );
                 })}
 
-                {/* Grand Total Footer */}
-                <div className="bg-secondary p-6 flex flex-col md:flex-row justify-between items-center text-white print:bg-gray-200 print:text-black">
+                {/* Sticky Grand Total Footer */}
+                <div className="sticky bottom-0 z-10 bg-secondary p-6 flex flex-col md:flex-row justify-between items-center text-white shadow-[0_-5px_20px_rgba(0,0,0,0.3)] print:static print:bg-gray-200 print:text-black print:shadow-none">
                     <div>
-                        <p className="text-lg font-medium opacity-90 print:text-black">Total Estimated Investment</p>
-                        <p className="text-sm opacity-70 print:text-black">Valid for 30 days from issuance</p>
+                        <p className="text-lg font-medium opacity-90 print:text-black">Grand Total</p>
+                        <p className="text-sm opacity-70 print:text-black">Includes all discounts and taxes</p>
                     </div>
                     <div className="text-4xl font-extrabold mt-2 md:mt-0 print:text-black">
                         {formatCurrency(grandTotal)}
