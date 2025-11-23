@@ -19,6 +19,37 @@
         -webkit-mask: url('/images/goose_logo.svg') no-repeat center / contain;
         mask: url('/images/goose_logo.svg') no-repeat center / contain;
       }
+      
+      /* Proposal Specific Styles */
+      .proposal-gradient {
+        background: linear-gradient(135deg, #1c203c 0%, #2a3052 100%);
+      }
+
+      @media print {
+        @page { margin: 0; size: auto; }
+        body {
+            background-color: white !important;
+            color: black !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .no-print {
+            display: none !important;
+        }
+        .print-break-inside-avoid {
+            break-inside: avoid;
+        }
+        .print-bg-white {
+            background-color: white !important;
+        }
+        .print-text-black {
+            color: black !important;
+        }
+        /* Force dark backgrounds to print if needed, or invert for readability */
+        .proposal-section {
+            break-before: page;
+        }
+      }
     </style>
     <script>
       tailwind.config = {
@@ -32,6 +63,15 @@
               'foreground': 'hsl(var(--foreground))',
               'background-light': '#2a3052',
             },
+            animation: {
+              'fade-in-down': 'fadeInDown 0.5s ease-out',
+            },
+            keyframes: {
+              fadeInDown: {
+                '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+            }
           }
         }
       }

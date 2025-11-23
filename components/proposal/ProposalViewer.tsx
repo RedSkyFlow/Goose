@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchProposal, fetchDeals } from '../../services/apiService';
-import { Proposal, Deal, ProposalStatus, ProposalItem } from '../../types';
+import { Proposal, Deal, ProposalStatus } from '../../types';
 import { SignatureBlock } from './SignatureBlock';
 import { PaymentBlock } from './PaymentBlock';
-import { SparklesIcon, CheckCircleIcon } from '../icons';
+import { ProposalHero } from './ProposalHero';
+import { ExecutiveSummary } from './ExecutiveSummary';
+import { SolutionBreakdown } from './SolutionBreakdown';
+import { ProposalTable } from './ProposalTable';
+import { CollaborationSidebar } from './CollaborationSidebar';
+import { DownloadIcon, CloseIcon } from '../icons';
 
 interface ProposalViewerProps {
   proposalId: string;
-}
-
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 }
 
 export const ProposalViewer: React.FC<ProposalViewerProps> = ({ proposalId }) => {
@@ -28,7 +29,7 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({ proposalId }) =>
         setProposal(fetchedProposal);
         setSelectedItemIds(new Set(fetchedProposal.content.solutionItems.map(item => item.id)));
 
-        const allDeals = await fetchDeals(); // In a real app, you'd fetch by ID
+        const allDeals = await fetchDeals(); 
         const relatedDeal = allDeals.find(d => d.deal_id === fetchedProposal.deal_id);
         setDeal(relatedDeal || null);
 
@@ -65,21 +66,34 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({ proposalId }) =>
     setProposal(updatedProposal);
   };
 
+  const handlePrint = () => {
+      window.print();
+  };
+
+  const handleExit = () => {
+      // Simply redirect to home or close tab if possible, standard pattern for microsites
+      window.location.href = '/';
+  }
+
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-secondary"></div>
+      <div className="flex h-screen w-full items-center justify-center bg-[#1c203c]">
+        <div className="flex flex-col items-center">
+             <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mb-4"></div>
+             <p className="text-primary font-mono">Loading Proposal...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !proposal || !deal) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background text-red-400 p-8">
+      <div className="flex h-screen w-full items-center justify-center bg-[#1c203c] text-white p-8">
         <div className="text-center">
-            <h1 className="text-2xl font-bold">Error Loading Proposal</h1>
-            <p className="mt-2">{error || 'Could not find the requested proposal.'}</p>
+            <h1 className="text-3xl font-bold text-red-500 mb-4">Unable to Access Proposal</h1>
+            <p className="text-gray-300">{error || 'Could not find the requested proposal.'}</p>
+            <button onClick={handleExit} className="mt-8 text-primary hover:underline">Return to Dashboard</button>
         </div>
       </div>
     );
@@ -89,109 +103,86 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({ proposalId }) =>
   const isAccepted = proposal.status === ProposalStatus.ACCEPTED || proposal.status === ProposalStatus.PAID;
 
   return (
-    <div className="bg-background min-h-screen font-sans text-foreground flex justify-center p-4 sm:p-8">
-      <main className="w-full max-w-5xl bg-background-light border border-primary/50 rounded-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <header className="p-8 bg-background/50 border-b border-primary/50 text-center">
-            <div className="flex items-center justify-center mb-4">
-                 <div role="img" aria-label="Goose OS Logo" className="goose-logo h-12 w-12 mr-4" />
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground">{content.proposalTitle}</h1>
-                    <p className="text-foreground/70">Prepared for: {content.clientName}</p>
-                </div>
-            </div>
-        </header>
+    <div className="bg-[#1c203c] min-h-screen font-sans text-foreground overflow-x-hidden proposal-gradient">
         
-        <div className="p-8 space-y-10">
-            {/* Executive Summary */}
-            <section>
-                <h2 className="text-2xl font-bold text-secondary mb-3">Executive Summary</h2>
-                <p className="text-foreground/90 leading-relaxed">{content.executiveSummary}</p>
-            </section>
-            
-            {/* Challenges */}
-            <section>
-                <h2 className="text-2xl font-bold text-secondary mb-3">Understanding Your Challenges</h2>
-                <p className="text-foreground/90 leading-relaxed">{content.clientChallenges}</p>
-            </section>
+        {/* Floating Navigation Header (Glassmorphism) */}
+        <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center bg-[#1c203c]/80 backdrop-blur-md border-b border-white/10 print:hidden">
+             <div className="text-white font-bold tracking-wider opacity-80">PROPOSAL # {proposal.proposal_id.toUpperCase()}</div>
+             <div className="flex items-center space-x-4">
+                 <button 
+                    onClick={handlePrint}
+                    className="flex items-center text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                >
+                     <DownloadIcon className="w-5 h-5 mr-2" />
+                     Download PDF
+                 </button>
+                 <div className="h-6 w-px bg-gray-600"></div>
+                 <button onClick={handleExit} className="text-gray-400 hover:text-white">
+                     <CloseIcon className="w-6 h-6" />
+                 </button>
+             </div>
+        </nav>
 
-            {/* Interactive Solution */}
-            <section>
-                <h2 className="text-2xl font-bold text-secondary mb-4">Proposed Solution</h2>
-                <div className="space-y-4">
-                    {content.solutionItems.map(item => (
-                        <div key={item.id} className={`p-4 rounded-lg border transition-all duration-300 ${selectedItemIds.has(item.id) ? 'bg-primary/10 border-primary/50' : 'bg-background/30 border-primary/20 opacity-60'}`}>
-                            <div className="flex items-start">
-                                <input 
-                                    type="checkbox"
-                                    checked={selectedItemIds.has(item.id)}
-                                    onChange={() => handleToggleItem(item.id)}
-                                    disabled={isAccepted}
-                                    className="h-6 w-6 rounded border-primary/70 text-secondary focus:ring-secondary mt-1 cursor-pointer disabled:cursor-not-allowed"
-                                />
-                                <div className="ml-4 flex-grow">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="font-bold text-lg text-foreground">{item.name}</h3>
-                                        <span className="font-semibold text-foreground">{formatCurrency(item.price * item.quantity)}</span>
-                                    </div>
-                                    <p className="text-sm text-foreground/80 mt-1">{item.description}</p>
-                                    <ul className="mt-2 list-disc list-inside text-sm text-foreground/70 space-y-1">
-                                        {item.features.map((feature, i) => <li key={i}>{feature}</li>)}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+        {/* 1. Hero Section */}
+        <ProposalHero 
+            title={content.proposalTitle} 
+            clientName={content.clientName}
+            date={proposal.created_at}
+        />
+
+        {/* 2. Executive Summary */}
+        <ExecutiveSummary 
+            summary={content.executiveSummary}
+            challenges={content.clientChallenges}
+            roiProjections={content.roiProjections}
+        />
+
+        {/* 3. Solution Breakdown */}
+        <SolutionBreakdown items={content.solutionItems} />
+
+        {/* 4. Pricing Table */}
+        <ProposalTable 
+            items={content.solutionItems}
+            selectedItemIds={selectedItemIds}
+            onToggleItem={handleToggleItem}
+            isLocked={isAccepted}
+        />
+
+        {/* 5. Acceptance & Payment */}
+        <section className="py-20 bg-[#15182e] print:py-10 print:bg-white">
+             <div className="max-w-3xl mx-auto px-8 space-y-12 print:px-0">
+                {/* T&Cs */}
+                <div className="text-xs text-gray-500 mb-12 print:text-black">
+                    <h4 className="font-bold uppercase mb-2">Terms & Conditions</h4>
+                    <p className="whitespace-pre-wrap">{content.termsAndConditions}</p>
                 </div>
-                 {!isAccepted && <p className="text-xs text-center text-foreground/60 mt-4">You can un-check items to tailor the proposal to your needs. The total will update automatically.</p>}
-            </section>
 
-             {/* ROI Projections */}
-            <section>
-                <h2 className="text-2xl font-bold text-secondary mb-4">Projected Return on Investment</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {content.roiProjections.map((roi, i) => (
-                        <div key={i} className="bg-background/50 p-4 rounded-lg border border-primary/30 text-center">
-                            <p className="text-3xl font-bold text-accent">{roi.value}</p>
-                            <p className="font-semibold text-foreground/90 mt-1">{roi.metric}</p>
-                            <p className="text-xs text-foreground/70 mt-2">{roi.description}</p>
-                        </div>
-                    ))}
+                {/* Sign-off Logic - Using existing components, but wrapped nicely */}
+                <div className="bg-[#1c203c] p-8 rounded-xl border border-primary/20 shadow-lg print:bg-white print:border-black">
+                     <SignatureBlock 
+                        proposal={proposal} 
+                        onProposalUpdate={handleUpdateProposal}
+                        finalValue={totalValue}
+                        selectedItemIds={Array.from(selectedItemIds)}
+                    />
                 </div>
-            </section>
 
-            {/* Investment Summary */}
-            <section className="text-center bg-background/50 p-6 rounded-lg border-2 border-accent">
-                 <h2 className="text-lg font-semibold text-foreground/80 tracking-widest uppercase">Investment Summary</h2>
-                 <p className="text-5xl font-bold text-accent my-2">{formatCurrency(totalValue)}</p>
-                 <p className="text-foreground/70">Total for selected services</p>
-            </section>
+                {isAccepted && (
+                    <div className="bg-[#1c203c] p-8 rounded-xl border border-primary/20 shadow-lg print:bg-white print:border-black">
+                        <PaymentBlock 
+                            proposal={proposal} 
+                            deal={deal}
+                            finalValue={proposal.final_accepted_value ?? totalValue} 
+                            onProposalUpdate={handleUpdateProposal} 
+                        />
+                    </div>
+                )}
+             </div>
+        </section>
+        
+        {/* Collaboration Sidebar */}
+        <CollaborationSidebar clientName={content.clientName} />
 
-             {/* T&Cs */}
-            <section>
-                <h2 className="text-xl font-bold text-secondary mb-3">Terms & Conditions</h2>
-                <p className="text-xs text-foreground/70 leading-relaxed whitespace-pre-wrap">{content.termsAndConditions}</p>
-            </section>
-        </div>
-
-        {/* Actions */}
-        <div className="p-8 bg-background/50 border-t border-primary/50 space-y-8">
-            <SignatureBlock 
-                proposal={proposal} 
-                onProposalUpdate={handleUpdateProposal}
-                finalValue={totalValue}
-                selectedItemIds={Array.from(selectedItemIds)}
-            />
-            {isAccepted && (
-                 <PaymentBlock 
-                    proposal={proposal} 
-                    deal={deal}
-                    finalValue={proposal.final_accepted_value ?? totalValue} 
-                    onProposalUpdate={handleUpdateProposal} 
-                />
-            )}
-        </div>
-      </main>
     </div>
   );
 };
